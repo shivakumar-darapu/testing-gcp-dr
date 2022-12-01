@@ -121,6 +121,7 @@ jobs:
         run: |
           gcloud info
           gcloud version
+          gcloud compute url-maps list
           gcloud compute url-maps set-default-service --default-service=$us_east_external_lb_backend_service_name $us_east_external_lb_url_map --project="$project_id"
           # gcloud compute url-maps set-default-service --default-service=$us_east_internal_lb_backend_service_name $us_east_internal_lb_url_map --project="$project_id"
         
