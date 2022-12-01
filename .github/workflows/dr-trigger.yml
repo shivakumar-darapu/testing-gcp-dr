@@ -121,8 +121,8 @@ jobs:
         run: |
           gcloud info
           gcloud version
-          gcloud compute url-maps set-default-service --default-service=$us_east_external_lb_backend_service_name $us_east_external_lb_url_map --project="$gke_project"
-          # gcloud compute url-maps set-default-service --default-service=$us_east_internal_lb_backend_service_name $us_east_internal_lb_url_map --project="$gke_project"
+          gcloud compute url-maps set-default-service --default-service=$us_east_external_lb_backend_service_name $us_east_external_lb_url_map --project="$project_id"
+          # gcloud compute url-maps set-default-service --default-service=$us_east_internal_lb_backend_service_name $us_east_internal_lb_url_map --project="$project_id"
         
   LB_REBASE_US_WEST:
     permissions:
@@ -142,6 +142,6 @@ jobs:
         run: |
           gcloud info
           gcloud version
-          gcloud compute url-maps set-default-service --default-service=$us_west_external_lb_backend_service_name $us_west_external_lb_url_map --project="$gke_project"
-          # gcloud compute url-maps set-default-service --default-service=$us_west_internal_lb_backend_service_name $us_west_internal_lb_url_map --project="$gke_project"
+          gcloud compute url-maps set-default-service --default-service=$us_west_external_lb_backend_service_name $us_west_external_lb_url_map --project="$project_id"
+          # gcloud compute url-maps set-default-service --default-service=$us_west_internal_lb_backend_service_name $us_west_internal_lb_url_map --project="$project_id"
 
