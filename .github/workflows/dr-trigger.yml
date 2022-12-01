@@ -1,0 +1,147 @@
+name: DR-Trigger
+
+env:
+########################## USER DETAILS ################################
+  wip: 'projects/13793097680/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+  sa: 'my-service-account@grand-thought-365806.iam.gserviceaccount.com'
+#########################################################################
+
+########################### PROJECT DETAILS ################################
+  project_id: 'grand-thought-365806'    
+  gke_project: "np-homeservices"
+############################################################################ 
+
+############################### ZONE INFO ################################## 
+  zone_us_east: us-east1-b
+  zone_us_west: us-west1-c
+############################################################################
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> US WEST CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+########################### US WEST DATABASE INFO ########################## 
+
+  geodb_us_west: geodb
+  notifydb_us_west: notifydb
+  securitydb_dr_us_west: securitydb-dr
+  serviceproviderdb_dr_us_west: serviceproviderdb-dr
+  tresurydb_dr_us_west: tresurydb-dr
+  workorderdb_dr_us_west: workorderdb-dr
+  servicecatalogdb_dr_us_west: servicecatalogdb-dr
+
+############################################################################ 
+
+########################## US WEST LOAD BALANCER INFO ###################### 
+
+  us_west_external_lb_backend_service_name: thd-dev-backend-svc1
+  us_west_external_lb_url_map: test-lb
+  us_west_internal_lb_backend_service_name: thd-dev-backend-svc1-internal
+  us_west_internal_lb_url_map: thd-dev-url-map-internal
+
+############################################################################
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> US EAST CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+########################## US EAST LOAD BALANCER INFO ###################### 
+
+  us_east_external_lb_backend_service_name: thd-dev-backend-svc2
+  us_east_external_lb_url_map: test-lb
+  us_east_internal_lb_backend_service_name: thd-dev-backend-svc2-internal
+  us_east_internal_lb_url_map: thd-dev-url-map-internal
+
+############################################################################ 
+
+########################## US EAST BATABASE INFO ###########################
+
+  geodb_us_east: geodb-replica
+  notifydb_us_east: notifydb-replica
+  securitydb_dr_us_east: securitydb-dr-replica
+  serviceproviderdb_dr_us_east: serviceproviderdb-dr-replica
+  tresurydb_dr_us_east: tresurydb-dr-replica
+  workorderdb_dr_us_east: workorderdb-dr-replica
+  servicecatalogdb_dr_us_east: servicecatalogdb-dr-replica
+
+#########################################################################
+
+####################### US EAST : BACKUP RELATED INFO #######################   
+
+  backup_name_us_east: "thd-us-west-to-us-east-backup"
+  backup_name_us_west: "thd-us-west-to-us-east-backup"
+  restore_name_us_east: "thd-us-east-to-us-west-restore"
+  restore_name_us_west: "thd-us-west-to-us-east-restore"
+  
+  backup_plan_us_east: "thd-secondary-to-primary-backup-plan"
+  backup_plan_us_west: "thd-primary-to-secondary-backup-plan"
+  restore_plan_us_west: "thd-primary-to-secondary-restore-plan" 
+  restore_plan_us_east: "thd-secondary-to-primary-restore-plan "
+
+############################################################################  
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>># 
+
+
+# Controls when the workflow will run
+on:
+  workflow_dispatch:
+    inputs:
+      switch_to_region:
+        type: choice
+        description: Select the region you would like to switch To
+        options: 
+        - us-central1-c 
+        - us-east1-b 
+      gke_backup_restore: 
+        type: choice
+        description: Would you like to create a backup before restore (Selecte False, if you would like to restore from existing backup)
+        options:
+          - Yes
+          - No
+
+
+      
+  
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  LB_REBASE_US_EAST:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: "homeservices"
+    if: contains(inputs.switch_to_region, 'us-east')
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+          workload_identity_provider: $wip
+          service_account: $sa
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud compute url-maps set-default-service --default-service=$us_east_external_lb_backend_service_name $us_east_external_lb_url_map --project="$gke_project"
+          # gcloud compute url-maps set-default-service --default-service=$us_east_internal_lb_backend_service_name $us_east_internal_lb_url_map --project="$gke_project"
+        
+  LB_REBASE_US_WEST:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: "homeservices"
+    if: contains(inputs.switch_to_region, 'us-west')
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+          workload_identity_provider: $wip
+          service_account: $sa
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud compute url-maps set-default-service --default-service=$us_west_external_lb_backend_service_name $us_west_external_lb_url_map --project="$gke_project"
+          # gcloud compute url-maps set-default-service --default-service=$us_west_internal_lb_backend_service_name $us_west_internal_lb_url_map --project="$gke_project"
+
