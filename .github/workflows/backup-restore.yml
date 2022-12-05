@@ -149,7 +149,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    runs-on: "homeservices"
+    runs-on: ubuntu-latest
     if: contains(inputs.switch_to_region, 'us-east1-b')
     steps:
       - name: Set up gcloud Cloud SDK environment
@@ -207,7 +207,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    runs-on: "homeservices"
+    runs-on: ubuntu-latest
     if: contains(inputs.switch_to_region, 'us-west1-a')
     steps:
       - name: Set up gcloud Cloud SDK environment
