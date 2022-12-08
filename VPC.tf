@@ -7,8 +7,6 @@ data "google_project" "kubernetes-labs" {
 resource "null_resource" "create-pri-to-sec-restore-plan" {
  provisioner "local-exec" {
 
-    command = <<-EOF
-               gcloud beta container backup-plans list
-              EOF
+    command = "gcloud beta container backup-restore backup-plans list"
   }
 }
