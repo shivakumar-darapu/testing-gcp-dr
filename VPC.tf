@@ -1,5 +1,5 @@
 data "google_project" "kubernetes-labs" {
-  project_id = "mytestlab-356007"
+  project_id = "grand-thought-365806"
 }
 
 
