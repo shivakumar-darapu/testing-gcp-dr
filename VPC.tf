@@ -8,7 +8,7 @@ resource "null_resource" "create-pri-to-sec-restore-plan" {
  provisioner "local-exec" {
 
     command = <<-EOF
-               gcloud beta container backup-restore backup-plans list
+               gcloud beta container backup-plans list
               EOF
   }
 }
