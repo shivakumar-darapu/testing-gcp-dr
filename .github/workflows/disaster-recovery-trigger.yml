@@ -47,6 +47,12 @@ env:
   restore_plan_primary: "thd-us-central-restore-plan" 
 
 ##############################################################################    
+########################### Primary GKE Cluster INFO ########################## 
+
+primary_cluster_name: 'us-central'
+primary_cluster_location: 'us-central1-c'
+
+############################################################################ 
 
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 
@@ -118,8 +124,8 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
-          cluster_name: 'us-central'
-          location: 'us-central1-c'
+         cluster_name: $primary_cluster_name
+         location: $primary_cluster_location
       - name: "Scaling the deployments"
         run: |
           kubectl get nodes
