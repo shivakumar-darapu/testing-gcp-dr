@@ -248,7 +248,7 @@ jobs:
             gcloud beta container backup-restore restores create $restore_name_primary_to_secondary \
               --project=$gke_project_id \
               --location=$secondary_region  \
-              --restore-plan=$restore_plan_primary \
+              --restore-plan=$restore_plan_secondary \
               --backup="projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary_to_secondary/backups/$backup_name_primary_to_secondary" \
               --wait-for-completion
           else 
@@ -261,7 +261,7 @@ jobs:
             gcloud beta container backup-restore restores create $restore_name_primary_to_secondary \
               --project=$gke_project_id \
               --location=$secondary_region  \
-              --restore-plan=$restore_plan_primary \
+              --restore-plan=$restore_plan_secondary \
               --backup=projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary_to_secondary/backups/$backup_name_primary_to_secondary \
               --wait-for-completion
           fi
@@ -305,7 +305,7 @@ jobs:
             gcloud beta container backup-restore restores create $restore_name_secondary_to_primary \
               --project=$gke_project_id \
               --location=$primary_region \
-              --restore-plan=$restore_plan_secondary \
+              --restore-plan=$restore_plan_primary \
               --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary_to_primary/backups/$backup_name_secondary_to_primary" \
               --wait-for-completion
           else 
@@ -318,7 +318,7 @@ jobs:
             gcloud beta container backup-restore restores create $restore_name_secondary_to_primary \
               --project=$gke_project_id \
               --location=$primary_region \
-              --restore-plan=$restore_plan_secondary \
+              --restore-plan=$restore_plan_primary \
               --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary_to_primary/backups/$backup_name_secondary_to_primary" \
               --wait-for-completion
           fi
