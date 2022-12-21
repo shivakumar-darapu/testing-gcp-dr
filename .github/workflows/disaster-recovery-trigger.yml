@@ -1,4 +1,4 @@
-name: disaster-recovery-trigger
+name: New-DR-Trigger
 
 env:
 ########################## USER DETAILS ################################
@@ -8,80 +8,83 @@ env:
 
 ########################### PROJECT DETAILS ################################
   project_id: 'grand-thought-365806'    
-  gke_project: "np-homeservices"
+  gke_project_id: 'grand-thought-365806'
 ############################################################################ 
 
 ############################### ZONE INFO ################################## 
-  zone_us_east: us-east1-b
-  zone_us_west: us-west1-c
+  zone_secondary: us-west1-a
+  zone_primary: us-central1-b
 ############################################################################
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> US WEST CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Primary CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-########################### US WEST DATABASE INFO ########################## 
+########################### Primary DATABASE INFO ########################## 
 
-  geodb_us_west: geodb
-  notifydb_us_west: notifydb
-  securitydb_dr_us_west: securitydb-dr
-  serviceproviderdb_dr_us_west: serviceproviderdb-dr
-  tresurydb_dr_us_west: tresurydb-dr
-  workorderdb_dr_us_west: workorderdb-dr
-  servicecatalogdb_dr_us_west: servicecatalogdb-dr
+  geodb_primary: db-us-central
+  notifydb_primary: notifydb
+  securitydb_dr_primary: securitydb-dr
+  serviceproviderdb_dr_primary: serviceproviderdb-dr
+  tresurydb_dr_primary: tresurydb-dr
+  workorderdb_dr_primary: workorderdb-dr
+  servicecatalogdb_dr_primary: servicecatalogdb-dr
 
 ############################################################################ 
 
-########################## US WEST LOAD BALANCER INFO ###################### 
+########################## Primary LOAD BALANCER INFO ###################### 
 
-  us_west_external_lb_backend_service_name: thd-dev-backend-svc1
-  us_west_external_lb_url_map: test-lb
-  us_west_internal_lb_backend_service_name: thd-dev-backend-svc1-internal
-  us_west_internal_lb_url_map: thd-dev-url-map-internal
+  primary_external_lb_backend_service_name: thd-dev-backend-svc2
+  primary_external_lb_url_map: thd-global
+  primary_internal_lb_backend_service_name: thd-dev-backend-svc1-internal
+  primary_internal_lb_url_map: thd-dev-url-map-internal
 
 ############################################################################
+
+####################### Primary : BACKUP RELATED INFO #######################   
+
+  backup_name_primary_to_secondary: "thd-us-central-to-us-west-backup"
+  restore_name_primary_to_secondary: "thd-us-central-to-us-west-restore"
+  backup_plan_primary_to_secondary: "thd-us-central-to-us-west-backup-plan"
+  restore_plan_primary: "thd-us-central-restore-plan" 
+
+##############################################################################    
 
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> US EAST CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Secondary CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-########################## US EAST LOAD BALANCER INFO ###################### 
+########################## Secondary LOAD BALANCER INFO ###################### 
 
-  us_east_external_lb_backend_service_name: thd-dev-backend-svc2
-  us_east_external_lb_url_map: test-lb
-  us_east_internal_lb_backend_service_name: thd-dev-backend-svc2-internal
-  us_east_internal_lb_url_map: thd-dev-url-map-internal
+  secondary_external_lb_backend_service_name: thd-dev-backend-svc1
+  secondary_external_lb_url_map: thd-global
+  secondary_internal_lb_backend_service_name: thd-dev-backend-svc2-internal
+  secondary_internal_lb_url_map: thd-dev-url-map-internal
 
 ############################################################################ 
 
-########################## US EAST BATABASE INFO ###########################
+########################## Secondary DATABASE INFO ###########################
 
-  geodb_us_east: geodb-replica
-  notifydb_us_east: notifydb-replica
-  securitydb_dr_us_east: securitydb-dr-replica
-  serviceproviderdb_dr_us_east: serviceproviderdb-dr-replica
-  tresurydb_dr_us_east: tresurydb-dr-replica
-  workorderdb_dr_us_east: workorderdb-dr-replica
-  servicecatalogdb_dr_us_east: servicecatalogdb-dr-replica
+  geodb_secondary: db-us-west
+  notifydb_secondary: notifydb-replica
+  securitydb_dr_secondary: securitydb-dr-replica
+  serviceproviderdb_dr_secondary: serviceproviderdb-dr-replica
+  tresurydb_dr_secondary: tresurydb-dr-replica
+  workorderdb_dr_secondary: workorderdb-dr-replica
+  servicecatalogdb_dr_secondary: servicecatalogdb-dr-replica
 
-#########################################################################
+########################################################################### 
 
-####################### US EAST : BACKUP RELATED INFO #######################   
+####################### Secondary : BACKUP RELATED INFO #######################   
 
-  backup_name_us_east: "thd-us-west-to-us-east-backup"
-  backup_name_us_west: "thd-us-west-to-us-east-backup"
-  restore_name_us_east: "thd-us-east-to-us-west-restore"
-  restore_name_us_west: "thd-us-west-to-us-east-restore"
+  backup_name_secondary_to_primary: "thd-us-west-to-us-central-backup"
+  restore_name_secondary_to_primary: "thd-us-west-to-us-central-restore"
+  backup_plan_secondary_to_primary: "thd-us-west-to-us-central-backup-plan"
+  restore_plan_secondary: "thd-us-west-restore-plan"
   
-  backup_plan_us_east: "thd-secondary-to-primary-backup-plan"
-  backup_plan_us_west: "thd-primary-to-secondary-backup-plan"
-  restore_plan_us_west: "thd-primary-to-secondary-restore-plan" 
-  restore_plan_us_east: "thd-secondary-to-primary-restore-plan "
 
-############################################################################  
+##############################################################################  
 
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>># 
 
-
-# Controls when the workflow will run
 on:
   workflow_dispatch:
     inputs:
@@ -89,26 +92,23 @@ on:
         type: choice
         description: Select the region you would like to switch To
         options: 
-        - us-central1-c 
-        - us-east1-b 
+        - us-west
+        - us-central
       gke_backup_restore: 
         type: choice
         description: Would you like to create a backup before restore (Selecte False, if you would like to restore from existing backup)
         options:
           - Yes
           - No
-
-
-      
-  
+ 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  LB_REBASE_US_EAST:
+  SCALE_DEPLOYMENTS_PRIMARY:
     permissions:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
-    if: contains(inputs.switch_to_region, 'us-east1-b')
+    if: contains(inputs.switch_to_region, 'us-central')
     steps:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v0'
@@ -116,32 +116,10 @@ jobs:
           workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
           service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v0'
-      - name: 'Use gcloud CLI'
-        run: |
-          gcloud info
-          gcloud version
-          gcloud compute url-maps list
-          gcloud compute url-maps set-default-service --default-service=$us_east_external_lb_backend_service_name $us_east_external_lb_url_map --project="$project_id"
-          # gcloud compute url-maps set-default-service --default-service=$us_east_internal_lb_backend_service_name $us_east_internal_lb_url_map --project="$project_id"
-        
-  LB_REBASE_US_WEST:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    runs-on: ubuntu-latest
-    if: contains(inputs.switch_to_region, 'us-central1-c')
-    steps:
-      - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v0'
+        uses: 'google-github-actions/get-gke-credentials@v1'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
-          service_account: 'my-service-account@grand-thought-365806.iam.gserviceaccount.com'
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v0'
-      - name: 'Use gcloud CLI'
+          cluster_name: 'my-cluster'
+          location: 'us-central1-a'
+      - name: "Scaling the deployments"
         run: |
-          gcloud info
-          gcloud version
-          gcloud compute url-maps set-default-service --default-service=$us_west_external_lb_backend_service_name $us_west_external_lb_url_map --project="$project_id"
-          # gcloud compute url-maps set-default-service --default-service=$us_west_internal_lb_backend_service_name $us_west_internal_lb_url_map --project="$project_id"
+          kubectl get nodes
