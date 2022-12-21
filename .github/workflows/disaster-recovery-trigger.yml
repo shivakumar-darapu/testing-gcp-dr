@@ -118,8 +118,8 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
-          cluster_name: 'my-cluster'
-          location: 'us-central1-a'
+          cluster_name: 'us-central'
+          location: 'us-central1-c'
       - name: "Scaling the deployments"
         run: |
           kubectl get nodes
