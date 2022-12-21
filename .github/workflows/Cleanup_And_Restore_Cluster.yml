@@ -72,7 +72,7 @@ env:
 
 ########################## Secondary DATABASE INFO ###########################
 
-  geodb_secondary: geodb-replica
+  geodb_secondary: db-us-west
   notifydb_secondary: notifydb-replica
   securitydb_secondary: securitydb-dr-replica
   serviceproviderdb_secondary: serviceproviderdb-dr-replica
