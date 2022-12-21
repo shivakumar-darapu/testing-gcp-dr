@@ -341,7 +341,7 @@ jobs:
         run: |
           gcloud info
           gcloud version
-          gcloud sql instances promote-replica $geodb_primary --quiet &
+          gcloud sql instances promote-replica $geodb_primary --quiet 
           # gcloud sql instances promote-replica $notifydb_primary --quiet &
           # gcloud sql instances promote-replica $securitydb_dr_primary --quiet &
           # gcloud sql instances promote-replica $serviceproviderdb_dr_primary --quiet &
@@ -367,7 +367,7 @@ jobs:
         run: |
           gcloud info
           gcloud version
-          gcloud sql instances promote-replica $geodb_secondary --quiet &
+          gcloud sql instances promote-replica $geodb_secondary --quiet 
           # gcloud sql instances promote-replica $notifydb_secondary --quiet &
           # gcloud sql instances promote-replica $securitydb_dr_secondary --quiet &
           # gcloud sql instances promote-replica $serviceproviderdb_dr_secondary --quiet &
