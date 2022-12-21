@@ -49,8 +49,8 @@ env:
 ##############################################################################    
 ########################### Primary GKE Cluster INFO ########################## 
 
-primary_cluster_name: 'us-central'
-primary_cluster_location: 'us-central1-c'
+  primary_cluster_name: 'us-central'
+  primary_cluster_location: 'us-central1-c'
 
 ############################################################################ 
 
@@ -60,7 +60,7 @@ primary_cluster_location: 'us-central1-c'
 
 ########################## Secondary LOAD BALANCER INFO ###################### 
 
-  secondary_external_lb_backend_service_name: thd-dev-backend-svc1
+  secondary_external_lb_backend_service_name: 'thd-dev-backend-svc1'
   secondary_external_lb_url_map: thd-global
   secondary_internal_lb_backend_service_name: thd-dev-backend-svc2-internal
   secondary_internal_lb_url_map: thd-dev-url-map-internal
