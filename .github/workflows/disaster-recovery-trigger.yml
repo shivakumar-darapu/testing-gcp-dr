@@ -1,7 +1,10 @@
 name: disaster-recovery-trigger
 
 env:
-
+########################## USER DETAILS ################################
+  wip: 'projects/13793097680/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+  sa: 'my-service-account@grand-thought-365806.iam.gserviceaccount.com'
+#########################################################################
 
 ########################### PROJECT DETAILS ################################
   project_id: 'grand-thought-365806'    
@@ -238,15 +241,15 @@ jobs:
             echo "In if Loop us-east"
             gcloud beta container backup-restore backups create $backup_name_primary_to_secondary \
                 --project=$gke_project_id \
-                --location=us-east1  \
+                --location=$secondary_region  \
                 --backup-plan=$backup_plan_primary_to_secondary \
                 --wait-for-completion
             # Restore Backup
             gcloud beta container backup-restore restores create $restore_name_primary_to_secondary \
               --project=$gke_project_id \
-              --location=us-east1  \
+              --location=$secondary_region  \
               --restore-plan=$restore_plan_primary \
-              --backup="projects/$gke_project_id/locations/us-east1/backupPlans/$backup_plan_primary_to_secondary/backups/$backup_name_primary_to_secondary" \
+              --backup="projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary_to_secondary/backups/$backup_name_primary_to_secondary" \
               --wait-for-completion
           else 
             # Only Restore logic 
@@ -295,7 +298,7 @@ jobs:
             echo "In if Loop us-west"
             gcloud beta container backup-restore backups create $backup_name_secondary_to_primary \
               --project=$gke_project_id \
-              --location=us-west1 \
+              --location=$primary_region \
               --backup-plan=$backup_plan_secondary_to_primary \
               --wait-for-completion
             # Restore Backup
