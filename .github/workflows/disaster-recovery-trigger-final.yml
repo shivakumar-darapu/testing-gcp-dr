@@ -26,8 +26,9 @@ on:
         type: choice
         description: Would you like to run the update external service ip stage ?
         options: 
-        - yes
         - no
+        - yes
+        
 env:
 
 ########################### PROJECT DETAILS ################################
