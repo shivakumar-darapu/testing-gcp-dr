@@ -131,6 +131,7 @@ jobs:
         run: |
           gcloud info
           gcloud version
+          gcloud components install beta --quiet
           gcloud beta services vpc-peerings update --service=servicenetworking.googleapis.com --ranges='db-us-west' --network='thd-test-network' --project="grand-thought-365806" --force
           gcloud sql instances create $geodb_secondary --master-instance-name=$geodb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet 
           # gcloud sql instances create $notifydb_secondary --master-instance-name=$notifydb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
@@ -192,6 +193,7 @@ jobs:
         run: |
           gcloud info
           gcloud version
+          gcloud components install beta --quiet
           gcloud services vpc-peerings update --service=servicenetworking.googleapis.com --ranges='db-subnet' --network='thd-test-network' --project="grand-thought-365806" --force
           gcloud sql instances create $geodb_primary --master-instance-name=$geodb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet 
           # gcloud sql instances create $notifydb_primary --master-instance-name=$notifydb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
