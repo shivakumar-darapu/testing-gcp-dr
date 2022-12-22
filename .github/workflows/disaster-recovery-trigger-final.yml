@@ -1,58 +1,34 @@
-name: Cleanup_And_Restore_Cluster
+name: disaster-recovery-trigger-final
 
-# Controls when the workflow will run
-on:
-  workflow_dispatch:
-    inputs:
-      switch_to_region:
-        type: choice
-        description: In which region would you like to create replicas
-        options: 
-        - us-west
-        - us-central 
-      replica_create:
-        type: choice
-        description: Would you like to run the replica create stage ?
-        options: 
-        - yes
-        - no
-      db_delete:
-        type: choice
-        description: Would you like to run the database deletion stage ?
-        options: 
-        - yes
-        - no 
-      update_ip:
-        type: choice
-        description: Would you like to run the update external service ip stage ?
-        options: 
-        - no
-        - yes
-        
 env:
+########################## USER DETAILS ################################
+  wip: 'projects/13793097680/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+  sa: 'my-service-account@grand-thought-365806.iam.gserviceaccount.com'
+#########################################################################
 
 ########################### PROJECT DETAILS ################################
-  
+  project_id: 'grand-thought-365806'    
   gke_project_id: 'grand-thought-365806'
-  vpc_name: 'thd-test-network'
 ############################################################################ 
 
-############################### ZONE INFO ##################################
+############################### ZONE INFO ################################## 
   zone_secondary: us-west1-a
   zone_primary: us-central1-b
 ############################################################################
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> PRIMARY CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Primary CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 
 ########################### Primary DATABASE INFO ########################## 
 
   geodb_primary: db-us-central
   notifydb_primary: notifydb
-  securitydb_primary: securitydb-dr
-  serviceproviderdb_primary: serviceproviderdb-dr
-  tresurydb_primary: tresurydb-dr
-  workorderdb_primary: workorderdb-dr
-  servicecatalogdb_primary: servicecatalogdb-dr
+  securitydb_dr_primary: securitydb-dr
+  serviceproviderdb_dr_primary: serviceproviderdb-dr
+  tresurydb_dr_primary: tresurydb-dr
+  workorderdb_dr_primary: workorderdb-dr
+  servicecatalogdb_dr_primary: servicecatalogdb-dr
+  primary_region: us-central1
 
 ############################################################################ 
 
@@ -66,12 +42,11 @@ env:
 ############################################################################
 
 ####################### Primary : BACKUP RELATED INFO #######################   
+
   backup_name_primary_to_secondary: "thd-us-central-to-us-west-backup"
   restore_name_primary_to_secondary: "thd-us-central-to-us-west-restore"
   backup_plan_primary_to_secondary: "thd-us-central-to-us-west-backup-plan"
   restore_plan_primary: "thd-us-central-restore-plan" 
-  
-  restore_plan_primary_to_secondary: "thd-us-west-to-us-east-restore-plan" 
 
 ##############################################################################    
 
@@ -79,10 +54,11 @@ env:
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Secondary CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+
 ########################## Secondary LOAD BALANCER INFO ###################### 
 
-  secondary_external_lb_backend_service_name: thd-dev-backend-svc2
-  secondary_external_lb_url_map: test-lb
+  secondary_external_lb_backend_service_name: thd-dev-backend-svc1
+  secondary_external_lb_url_map: thd-global
   secondary_internal_lb_backend_service_name: thd-dev-backend-svc2-internal
   secondary_internal_lb_url_map: thd-dev-url-map-internal
 
@@ -92,236 +68,361 @@ env:
 
   geodb_secondary: db-us-west
   notifydb_secondary: notifydb-replica
-  securitydb_secondary: securitydb-dr-replica
-  serviceproviderdb_secondary: serviceproviderdb-dr-replica
-  tresurydb_secondary: tresurydb-dr-replica
-  workorderdb_secondary: workorderdb-dr-replica
-  servicecatalogdb_secondary: servicecatalogdb-dr-replica
+  securitydb_dr_secondary: securitydb-dr-replica
+  serviceproviderdb_dr_secondary: serviceproviderdb-dr-replica
+  tresurydb_dr_secondary: tresurydb-dr-replica
+  workorderdb_dr_secondary: workorderdb-dr-replica
+  servicecatalogdb_dr_secondary: servicecatalogdb-dr-replica
+  secondary_region: us-west1
 
 ########################################################################### 
 
 ####################### Secondary : BACKUP RELATED INFO #######################   
 
-  backup_name_secondary_to_primary: "thd-us-east-to-us-west-backup"
-  restore_name_secondary_to_primary: "thd-us-east-to-us-west-restore"
-  backup_plan_secondary_to_primary: "thd-us-east-to-us-west-backup-plan"
-  restore_plan_secondary_to_primary: "thd-us-east-to-us-west-restore-plan"
+  backup_name_secondary_to_primary: "thd-us-west-to-us-central-backup"
+  restore_name_secondary_to_primary: "thd-us-west-to-us-central-restore"
+  backup_plan_secondary_to_primary: "thd-us-west-to-us-central-backup-plan"
+  restore_plan_secondary: "thd-us-west-restore-plan"
+  
 
 ##############################################################################  
 
 #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>># 
-     
-jobs:
 
-  REPLICA_CREATE_secondary:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    needs: [DB_DELETE_secondary]
-    runs-on: ubuntu-latest
-    if: inputs.switch_to_region == 'us-west' && inputs.replica_create == 'true'
-    steps:
-      - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v1'
-        with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-      - name: 'Use gcloud CLI'
-        run: |
-          gcloud info
-          gcloud version
-          gcloud components install beta --quiet
-          gcloud beta services vpc-peerings update --service=servicenetworking.googleapis.com --ranges='db-us-west' --network='thd-test-network' --project="grand-thought-365806" --force
-          gcloud sql instances create $geodb_secondary --master-instance-name=$geodb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet 
-          # gcloud sql instances create $notifydb_secondary --master-instance-name=$notifydb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $securitydb_secondary --master-instance-name=$securitydb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $tresurydb_secondary --master-instance-name=$tresurydb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $workorderdb_secondary --master-instance-name=$workorderdb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $servicecatalogdb_secondary --master-instance-name=$servicecatalogdb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $serviceproviderdb_secondary --master-instance-name=$serviceproviderdb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet  
-        
-  DB_DELETE_secondary:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    runs-on: ubuntu-latest
-    if: inputs.switch_to_region == 'us-west' && inputs.db_delete == 'true'
-    steps:
-      - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v1'
-        with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-      - name: 'Use gcloud CLI'
-        run: |
-          gcloud info
-          gcloud version
-          gcloud sql instances patch $geodb_secondary --no-deletion-protection # disable deletion protection
-          gcloud sql instances delete $geodb_secondary --quiet
-          # gcloud sql instances patch $notifydb_secondary --no-deletion-protection # disable deletion protection
-          # gcloud sql instances delete $notifydb_secondary --quiet
-          # gcloud sql instances patch $securitydb_secondary --no-deletion-protection # disable deletion protection
-          # gcloud sql instances delete $securitydb_secondary --quiet
-          # gcloud sql instances patch $tresurydb_secondary --no-deletion-protection # disable deletion protection
-          # gcloud sql instances delete $tresurydb_secondary --quiet
-          # gcloud sql instances patch $workorderdb_secondary --no-deletion-protection # disable deletion protection
-          # gcloud sql instances delete $workorderdb_secondary --quiet
-          # gcloud sql instances patch $servicecatalogdb_secondary --no-deletion-protection # disable deletion protection
-          # gcloud sql instances delete $servicecatalogdb_secondary --quiet
-          # gcloud sql instances patch $serviceproviderdb_secondary --no-deletion-protection # disable deletion protection
-          # gcloud sql instances delete $serviceproviderdb_secondary --quiet
-   
-  REPLICA_CREATE_primary:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    runs-on: ubuntu-latest
-    needs: [DB_DELETE_primary]
-    if: inputs.switch_to_region == 'us-central' && inputs.replica_create == 'true'
-    steps:
-      - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v1'
-        with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-      - name: 'Use gcloud CLI'
-        run: |
-          gcloud info
-          gcloud version
-          gcloud components install beta --quiet
-          gcloud services vpc-peerings update --service=servicenetworking.googleapis.com --ranges='db-subnet' --network='thd-test-network' --project="grand-thought-365806" --force
-          gcloud sql instances create $geodb_primary --master-instance-name=$geodb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet 
-          # gcloud sql instances create $notifydb_primary --master-instance-name=$notifydb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $securitydb_primary --master-instance-name=$securitydb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $tresurydb_primary --master-instance-name=$tresurydb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $workorderdb_primary --master-instance-name=$workorderdb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $servicecatalogdb_primary --master-instance-name=$servicecatalogdb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
-          # gcloud sql instances create $serviceproviderdb_primary --master-instance-name=$serviceproviderdb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet 
-        
-  DB_DELETE_primary:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    runs-on: ubuntu-latest
-    if: inputs.switch_to_region == 'us-central' && inputs.db_delete == 'true'
-    steps:
-      - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v1'
-        with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-      - name: 'Use gcloud CLI'
-        run: |
-
-            gcloud sql instances patch $geodb_primary --no-deletion-protection # disable deletion protection
-            gcloud sql instances delete $geodb_primary --quiet
-            # gcloud sql instances patch $notifydb_primary --no-deletion-protection # disable deletion protection
-            # gcloud sql instances delete $notifydb_primary --quiet
-            # gcloud sql instances patch $securitydb_primary --no-deletion-protection # disable deletion protection
-            # gcloud sql instances delete $securitydb_primary --quiet
-            # gcloud sql instances patch $tresurydb_primary --no-deletion-protection # disable deletion protection
-            # gcloud sql instances delete $tresurydb_primary --quiet
-            # gcloud sql instances patch $workorderdb_primary --no-deletion-protection # disable deletion protection
-            # gcloud sql instances delete $workorderdb_primary --quiet
-            # gcloud sql instances patch $servicecatalogdb_primary --no-deletion-protection # disable deletion protection
-            # gcloud sql instances delete $servicecatalogdb_primary --quiet
-            # gcloud sql instances patch $serviceproviderdb_primary --no-deletion-protection # disable deletion protection
-            # gcloud sql instances delete $serviceproviderdb_primary --quiet
+on:
+  workflow_dispatch:
+    inputs:
+      switch_to_region:
+        type: choice
+        description: Select the region you would like to switch To
+        options: 
+        - us-west
+        - us-central
+      gke_backup_restore: 
+        type: choice
+        description: Would you like to create a backup before restore (Selecte False, if you would like to restore from existing backup)
+        options:
+          - Yes
+          - No
+      rollback: 
+        type: choice
+        description: Would you like to rollback ?
+        options:
+          - No
+          - Yes
           
-  UPDATE_POSTGRESQL_IP_primary:
+      
+ 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  Rollback_To_secondary:
     permissions:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
-    needs: [REPLICA_CREATE_primary]
-    if: inputs.switch_to_region == 'us-central' && inputs.update_ip == 'true'
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'true'
     steps:
-      - name: "Clone the repo to copy the service-external.yml"
-        uses: actions/checkout@v3
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
         with:
+        # Please provide the workload_identity_provider & service_account
           workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
           service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/get-gke-credentials@v1'
-        with:
-          cluster_name: 'us-central'  # Make sure you provide the cluster name and location
-          location: 'us-central1-c'
+        uses: 'google-github-actions/setup-gcloud@v0'
       - name: 'Use gcloud CLI'
         run: |
-            gcloud info
-            gcloud version
-            geodb_primary_ip=$(gcloud sql instances describe $geodb_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            cp service-external.yml geodb_external_service.yml
-            sed -i "s/svcname/postgres-service/" "./geodb_external_service.yml"
-            sed -i "s/IP/$geodb_primary_ip/" "./geodb_external_service.yml"
-            kubectl apply -f ./geodb_external_service.yml
-
-            # notifydb_primary_ip=$(gcloud sql instances describe $notifydb_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml notifydb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./notifydb_external_service.yml"
-            # kubectl apply -f ./notifydb_external_service.yml
-            # securitydb_dr_primary_ip=$(gcloud sql instances describe $securitydb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml notifydb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
-            # serviceproviderdb_dr_primary_ip=$(gcloud sql instances describe $serviceproviderdb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml serviceproviderdb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
-            # tresurydb_dr_primary_ip=$(gcloud sql instances describe $tresurydb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml tresurydb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
-            # workorderdb_dr_primary_ip=$(gcloud sql instances describe $workorderdb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml workorderdb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
-            # servicecatalogdb_dr_primary_ip=$(gcloud sql instances describe $servicecatalogdb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml servicecatalogdb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
-
-  UPDATE_POSTGRESQL_IP_secondary:
+          gcloud info
+          gcloud version
+          gcloud compute url-maps set-default-service --default-service=$secondary_external_lb_backend_service_name $secondary_external_lb_url_map --project="$gke_project_id"
+          # gcloud compute url-maps set-default-service --default-service=$secondary_internal_lb_backend_service_name $secondary_internal_lb_url_map --project="$gke_project_id"
+        
+  Rollback_To_primary:
     permissions:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
-    needs: [REPLICA_CREATE_secondary]
-    if: inputs.switch_to_region == 'us-west' && inputs.update_ip == 'true'
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'true'
     steps:
-      - name: "Clone the repo to copy the service-external.yml"
-        uses: actions/checkout@v3
       - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v1'
+        uses: 'google-github-actions/auth@v0'
         with:
           workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
           service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+        uses: 'google-github-actions/setup-gcloud@v0'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud compute url-maps set-default-service --default-service=$primary_external_lb_backend_service_name $primary_external_lb_url_map --project="$gke_project_id"
+          # gcloud compute url-maps set-default-service --default-service=$primary_internal_lb_backend_service_name $primary_internal_lb_url_map --project="$gke_project_id"
+  
+  
+  SCALE_DEPLOYMENTS_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    needs: [GKE_BACKUP_RESTORE_primary_To_secondary]
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
           cluster_name: 'us-west' # Make sure you provide the cluster name and location
           location: 'us-west1-a'  
+      - name: "Scaling Deployemnts on primary cluster"
+        run: |
+          while IFS=";" read -r dep rep
+          do
+            echo "-----> Increasing replica count to $rep of deployment $dep ----->"
+            kubectl scale --replicas=$rep deployment/$dep
+          done < <(cat  deployment-list.csv)
+ 
+  SCALE_DEPLOYMENTS_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    needs: [GKE_BACKUP_RESTORE_secondary_To_primary]
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: "Clone the repo to copy the deployments.txt"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-central'  # Make sure you provide the cluster name and location
+          location: 'us-central1-c'
+      - name: "Scaling Deployemnts on primary cluster"
+        run: |
+          while IFS=";" read -r dep rep
+          do
+            echo "-----> Increasing replica count to $rep of deployment $dep ----->"
+            kubectl scale --replicas=$rep deployment/$dep
+          done < <(cat  deployment-list.csv)
+
+  LB_REBASE_secondary:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
       - name: 'Use gcloud CLI'
         run: |
-            gcloud info
-            gcloud version
-            geodb_primary_ip=$(gcloud sql instances describe $geodb_secondary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            cp service-external.yml geodb_external_service.yml
-            sed -i "s/svcname/postgres-service/" "./geodb_external_service.yml"
-            sed -i "s/IP/$geodb_primary_ip/" "./geodb_external_service.yml"
-            kubectl apply -f ./geodb_external_service.yml
+          gcloud info
+          gcloud version
+          gcloud compute url-maps set-default-service --default-service=$secondary_external_lb_backend_service_name $secondary_external_lb_url_map --project="$gke_project_id"
+          # gcloud compute url-maps set-default-service --default-service=$secondary_internal_lb_backend_service_name $secondary_internal_lb_url_map --project="$gke_project_id"
+        
+  LB_REBASE_primary:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud compute url-maps set-default-service --default-service=$primary_external_lb_backend_service_name $primary_external_lb_url_map --project="$gke_project_id"
+          # gcloud compute url-maps set-default-service --default-service=$primary_internal_lb_backend_service_name $primary_internal_lb_url_map --project="$gke_project_id"
+  
+  GKE_BACKUP_RESTORE_primary_To_secondary:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud components install beta
+          echo "================================beta component installed ========================================"
+          # logic to create backup and restore 
+          dt=$(date +%m-%d-%y)
+          backup_name_primary_to_secondary="$backup_name_primary_to_secondary-$dt"
+          restore_name_primary_to_secondary="$restore_name_primary_to_secondary-$dt"
+          echo "The backup name is: $backup_name_primary_to_secondary"
+          echo "The restore name is: $restore_name_primary_to_secondary"
+          echo " ${{ github.event.inputs.gke_backup_restore }}"
+          if [ ${{ github.event.inputs.gke_backup_restore }} == "true" ]
+          then 
+            # Create backup \
+            echo "In if Loop us-east"
+            gcloud beta container backup-restore backups create $backup_name_primary_to_secondary \
+                --project=$gke_project_id \
+                --location=$secondary_region  \
+                --backup-plan=$backup_plan_primary_to_secondary \
+                --wait-for-completion
+            # Restore Backup
+            gcloud beta container backup-restore restores create $restore_name_primary_to_secondary \
+              --project=$gke_project_id \
+              --location=$secondary_region  \
+              --restore-plan=$restore_plan_secondary \
+              --backup="projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary_to_secondary/backups/$backup_name_primary_to_secondary" \
+              --wait-for-completion
+          else 
+            # Only Restore logic 
+            echo "In else Loop us-east"
+            # Restore Backup 
+            backup_name_primary_to_secondary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary_to_secondary --project=$gke_project_id --location=us-east1 --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
+            echo "The latest backup file name as per search history is : $backup_name_primary_to_secondary"
+            echo "projects/$gke_project_id/locations/us-west1/backupPlans/$backup_plan_primary_to_secondary/backups/$backup_name_primary_to_secondary"
+            gcloud beta container backup-restore restores create $restore_name_primary_to_secondary \
+              --project=$gke_project_id \
+              --location=$secondary_region  \
+              --restore-plan=$restore_plan_secondary \
+              --backup=projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary_to_secondary/backups/$backup_name_primary_to_secondary \
+              --wait-for-completion
+          fi
+
+  GKE_BACKUP_RESTORE_secondary_To_primary:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud components install beta
+          echo "================================ Beta Component Installed ========================================"
+          # logic to create backup and restore 
+          dt=$(date +%m-%d-%y)
+          backup_name_secondary_to_primary="$backup_name_secondary_to_primary-$dt"
+          restore_name_secondary_to_primary="$restore_name_secondary_to_primary-$dt"
+          echo "The backup name is: $backup_name_secondary_to_primary"
+          echo "The restore name is: $restore_name_secondary_to_primary"
+          if [ ${{ github.event.inputs.gke_backup_restore }} == "true" ]
+          then 
+            # Create backup 
+            echo "In if Loop us-west"
+            gcloud beta container backup-restore backups create $backup_name_secondary_to_primary \
+              --project=$gke_project_id \
+              --location=$primary_region \
+              --backup-plan=$backup_plan_secondary_to_primary \
+              --wait-for-completion
+            # Restore Backup
+            gcloud beta container backup-restore restores create $restore_name_secondary_to_primary \
+              --project=$gke_project_id \
+              --location=$primary_region \
+              --restore-plan=$restore_plan_primary \
+              --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary_to_primary/backups/$backup_name_secondary_to_primary" \
+              --wait-for-completion
+          else 
+            # Only Restore logic 
+            echo "In else Loop us-west"
+            # Restore Backup 
+            backup_name_secondary_to_primary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary_to_primary --project=$gke_project_id --location=us-east1 --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
+            echo "The latest backup file name as per search history is : $backup_name_secondary_to_primary"
+            echo "projects/$gke_project_id/locations/us-west1/backupPlans/$restore_plan_secondary/backups/$backup_name_secondary_to_primary"
+            gcloud beta container backup-restore restores create $restore_name_secondary_to_primary \
+              --project=$gke_project_id \
+              --location=$primary_region \
+              --restore-plan=$restore_plan_primary \
+              --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary_to_primary/backups/$backup_name_secondary_to_primary" \
+              --wait-for-completion
+          fi
+  
+  DB_PROMOTION_primary_To_secondary:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud sql instances promote-replica $geodb_secondary --quiet 
+          # gcloud sql instances promote-replica $notifydb_secondary --quiet &
+          # gcloud sql instances promote-replica $securitydb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $serviceproviderdb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $tresurydb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $workorderdb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $servicecatalogdb_dr_secondary --quiet
           
+  DB_PROMOTION_secondary_To_primary:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud sql instances promote-replica $geodb_primary --quiet 
+          # gcloud sql instances promote-replica $notifydb_primary --quiet &
+          # gcloud sql instances promote-replica $securitydb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $serviceproviderdb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $tresurydb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $workorderdb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $servicecatalogdb_dr_primary --quiet
