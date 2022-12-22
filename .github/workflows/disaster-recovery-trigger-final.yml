@@ -1,4 +1,4 @@
-name: disaster-recovery-trigger-final
+name: disaster-recovery-trigger
 
 env:
 ########################## USER DETAILS ################################
@@ -28,7 +28,7 @@ env:
   tresurydb_dr_primary: tresurydb-dr
   workorderdb_dr_primary: workorderdb-dr
   servicecatalogdb_dr_primary: servicecatalogdb-dr
-  primary_region: us-central
+  primary_region: us-central1
 
 ############################################################################ 
 
@@ -392,13 +392,13 @@ jobs:
         run: |
           gcloud info
           gcloud version
-          gcloud sql instances promote-replica $geodb_primary --quiet 
-          # gcloud sql instances promote-replica $notifydb_primary --quiet &
-          # gcloud sql instances promote-replica $securitydb_dr_primary --quiet &
-          # gcloud sql instances promote-replica $serviceproviderdb_dr_primary --quiet &
-          # gcloud sql instances promote-replica $tresurydb_dr_primary --quiet &
-          # gcloud sql instances promote-replica $workorderdb_dr_primary --quiet &
-          # gcloud sql instances promote-replica $servicecatalogdb_dr_primary --quiet
+          gcloud sql instances promote-replica $geodb_secondary --quiet 
+          # gcloud sql instances promote-replica $notifydb_secondary --quiet &
+          # gcloud sql instances promote-replica $securitydb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $serviceproviderdb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $tresurydb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $workorderdb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $servicecatalogdb_dr_secondary --quiet
           
   DB_PROMOTION_secondary_To_primary:
     permissions:
@@ -418,10 +418,10 @@ jobs:
         run: |
           gcloud info
           gcloud version
-          gcloud sql instances promote-replica $geodb_secondary --quiet 
-          # gcloud sql instances promote-replica $notifydb_secondary --quiet &
-          # gcloud sql instances promote-replica $securitydb_dr_secondary --quiet &
-          # gcloud sql instances promote-replica $serviceproviderdb_dr_secondary --quiet &
-          # gcloud sql instances promote-replica $tresurydb_dr_secondary --quiet &
-          # gcloud sql instances promote-replica $workorderdb_dr_secondary --quiet &
-          # gcloud sql instances promote-replica $servicecatalogdb_dr_secondary --quiet
+          gcloud sql instances promote-replica $geodb_primary --quiet 
+          # gcloud sql instances promote-replica $notifydb_primary --quiet &
+          # gcloud sql instances promote-replica $securitydb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $serviceproviderdb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $tresurydb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $workorderdb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $servicecatalogdb_dr_primary --quiet
