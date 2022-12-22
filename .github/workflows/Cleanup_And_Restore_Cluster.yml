@@ -118,7 +118,7 @@ jobs:
       id-token: 'write'
     needs: [DB_DELETE_secondary]
     runs-on: ubuntu-latest
-    if: inputs.switch_to_region == 'us-west' && inputs.replica_create == "true" 
+    if: inputs.switch_to_region == 'us-west' && inputs.replica_create == 'true'
     steps:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
@@ -145,7 +145,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
-    if: inputs.switch_to_region == 'us-west' && inputs.db_delete == "true" 
+    if: inputs.switch_to_region == 'us-west' && inputs.db_delete == 'true'
     steps:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
@@ -179,7 +179,7 @@ jobs:
       id-token: 'write'
     runs-on: ubuntu-latest
     needs: [DB_DELETE_primary]
-    if: inputs.switch_to_region == 'us-central' && inputs.replica_create == "true"
+    if: inputs.switch_to_region == 'us-central' && inputs.replica_create == 'true'
     steps:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
@@ -206,7 +206,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
-    if: inputs.switch_to_region == 'us-central' && inputs.db_delete == "true"
+    if: inputs.switch_to_region == 'us-central' && inputs.db_delete == 'true'
     steps:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
@@ -239,7 +239,7 @@ jobs:
       id-token: 'write'
     runs-on: ubuntu-latest
     needs: [REPLICA_CREATE_primary]
-    if: inputs.switch_to_region == 'us-central' && inputs.update_ip == "true"
+    if: inputs.switch_to_region == 'us-central' && inputs.update_ip == 'true'
     steps:
       - name: "Clone the repo to copy the service-external.yml"
         uses: actions/checkout@v3
@@ -296,7 +296,7 @@ jobs:
       id-token: 'write'
     runs-on: ubuntu-latest
     needs: [REPLICA_CREATE_secondary]
-    if: inputs.switch_to_region == 'us-west' && inputs.update_ip == "true"
+    if: inputs.switch_to_region == 'us-west' && inputs.update_ip == 'true'
     steps:
       - name: "Clone the repo to copy the service-external.yml"
         uses: actions/checkout@v3
