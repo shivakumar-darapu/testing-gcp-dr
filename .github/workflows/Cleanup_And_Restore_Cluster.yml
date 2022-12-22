@@ -116,7 +116,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    #needs: [DB_DELETE_secondary]
+    needs: [DB_DELETE_secondary]
     runs-on: ubuntu-latest
     if: inputs.switch_to_region == 'us-west' && inputs.replica_create == 'true'
     steps:
