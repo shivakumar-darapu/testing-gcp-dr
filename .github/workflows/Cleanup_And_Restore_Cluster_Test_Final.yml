@@ -112,7 +112,7 @@ jobs:
             all_dbs_central=["db-us-central","db-us-central","db-us-central","db-us-central","db-us-central","db-us-central","db-us-central"]
             all_svc_names=["postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service"]
             
-            for index in ${!array[*]}
+            for index in ${!all_dbs_central[*]}
             do 
             db_ip=$(gcloud sql instances describe ${all_dbs_central[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
             cp service-external.yml ${all_svc_names[$index]}.yml
@@ -182,7 +182,7 @@ jobs:
             all_dbs_west=["db-us-west","db-us-west","db-us-west","db-us-west","db-us-west","db-us-west","db-us-west"]
             all_svc_names=["postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service"]
             
-            for index in ${!array[*]}
+            for index in ${!all_dbs_west[*]}
             do 
             db_ip=$(gcloud sql instances describe ${all_dbs_west[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
             cp service-external.yml ${all_svc_names[$index]}.yml
