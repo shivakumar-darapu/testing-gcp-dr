@@ -121,7 +121,7 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
-          cluster_name: 'us-central'  # Make sure you provide the cluster name and location
+          cluster_name: 'us-cluster'  # Make sure you provide the cluster name and location
           location: 'us-central1-c'
       - name: "Scaling Deployemnts on primary cluster"
         run: |
@@ -276,7 +276,7 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
-          cluster_name: 'us-central'  # Make sure you provide the cluster name and location
+          cluster_name: 'us-cluster'  # Make sure you provide the cluster name and location
           location: 'us-central1-c'
       - name: 'Use gcloud CLI'
         run: |
