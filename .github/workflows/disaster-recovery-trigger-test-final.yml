@@ -121,11 +121,11 @@ jobs:
       - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
         uses: actions/checkout@v3
       - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v1'
+        uses: 'google-github-actions/auth@v0'
         with:
         # Please provide the workload_identity_provider & service_account
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: 'Set up Cloud SDK'
@@ -158,8 +158,8 @@ jobs:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: 'Set up Cloud SDK'
@@ -191,11 +191,11 @@ jobs:
       - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
         uses: actions/checkout@v3
       - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v0'
+        uses: 'google-github-actions/auth@v1'
         with:
         # Please provide the workload_identity_provider & service_account
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
@@ -222,8 +222,8 @@ jobs:
         uses: 'google-github-actions/auth@v1'
         with:
         # Please provide the workload_identity_provider & service_account
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
@@ -248,8 +248,8 @@ jobs:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: 'Use gcloud CLI'
@@ -275,8 +275,8 @@ jobs:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: 'Use gcloud CLI'
@@ -302,8 +302,8 @@ jobs:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: 'Use gcloud CLI'
@@ -360,8 +360,8 @@ jobs:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: 'Use gcloud CLI'
@@ -419,8 +419,8 @@ jobs:
         uses: 'google-github-actions/auth@v0'
         with:
         # Please provide the workload_identity_provider & service_account
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
@@ -448,8 +448,8 @@ jobs:
         uses: 'google-github-actions/auth@v0'
         with:
         # Please provide the workload_identity_provider & service_account
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
@@ -475,8 +475,8 @@ jobs:
         uses: 'google-github-actions/auth@v0'
         with:
         # Please provide the workload_identity_provider & service_account
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v0'
       - name: 'Use gcloud CLI'
@@ -497,8 +497,8 @@ jobs:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v0'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v0'
       - name: 'Use gcloud CLI'
