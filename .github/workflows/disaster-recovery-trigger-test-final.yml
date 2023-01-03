@@ -1,0 +1,510 @@
+name: disaster-recovery-trigger-test-final
+
+env:
+
+########################### PROJECT DETAILS ################################
+  gke_project_id: 'grand-thought-365806'
+############################################################################ 
+
+############################### ZONE INFO ################################## 
+  zone_secondary: us-west1-a
+  zone_primary: us-central1-c
+############################################################################
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Primary CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+########################### Primary DATABASE INFO ########################## 
+
+  geodb_primary: db-us-central
+  notifydb_primary: notifydb
+  securitydb_dr_primary: securitydb-dr
+  serviceproviderdb_dr_primary: serviceproviderdb-dr
+  tresurydb_dr_primary: tresurydb-dr
+  workorderdb_dr_primary: workorderdb-dr
+  servicecatalogdb_dr_primary: servicecatalogdb-dr
+  primary_region: us-central1
+
+############################################################################ 
+
+########################## Primary LOAD BALANCER INFO ###################### 
+
+  primary_external_lb_backend_service_name: thd-dev-backend-svc2
+  primary_external_lb_url_map: thd-global
+  primary_internal_lb_backend_service_name: thd-dev-backend-svc1-internal
+  primary_internal_lb_url_map: thd-dev-url-map-internal
+
+############################################################################
+
+####################### Primary : BACKUP RELATED INFO #######################   
+
+  backup_name_primary: "thd-us-central-backup"
+  restore_name_primary: "thd-us-central-to-us-west-restore"
+  backup_plan_primary: "us-central-backup-plan"
+  restore_plan_primary: "us-central-restore-plan" 
+
+##############################################################################    
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Secondary CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+########################## Secondary LOAD BALANCER INFO ###################### 
+
+  secondary_external_lb_backend_service_name: thd-dev-backend-svc1
+  secondary_external_lb_url_map: thd-global
+  secondary_internal_lb_backend_service_name: thd-dev-backend-svc2-internal
+  secondary_internal_lb_url_map: thd-dev-url-map-internal
+
+############################################################################ 
+
+########################## Secondary DATABASE INFO ###########################
+
+  geodb_secondary: db-us-west
+  notifydb_secondary: notifydb-replica
+  securitydb_dr_secondary: securitydb-dr-replica
+  serviceproviderdb_dr_secondary: serviceproviderdb-dr-replica
+  tresurydb_dr_secondary: tresurydb-dr-replica
+  workorderdb_dr_secondary: workorderdb-dr-replica
+  servicecatalogdb_dr_secondary: servicecatalogdb-dr-replica
+  secondary_region: us-west1
+
+########################################################################### 
+
+####################### Secondary : BACKUP RELATED INFO #######################   
+
+  backup_name_secondary: "thd-us-west-to-us-central-backup"
+  restore_name_secondary: "thd-us-west-to-us-central-restore"
+  backup_plan_secondary: "us-west-bakup-plan"	
+  restore_plan_secondary: "us-west-restore-plan"
+  
+
+##############################################################################  
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>># 
+
+on:
+  workflow_dispatch:
+    inputs:
+      switch_to_region:
+        type: choice
+        description: Select the region you would like to switch To
+        options: 
+        - us-west
+        - us-central
+      gke_backup_restore: 
+        type: choice
+        description: Would you like to create a backup before restore (Selecte False, if you would like to restore from existing backup)
+        options:
+          - Yes
+          - No
+      rollback: 
+        type: choice
+        description: Would you like to rollback ?
+        options:
+          - No
+          - Yes
+          
+      
+ 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  Rollback_To_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'true'
+    steps:
+      - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-west' # Make sure you provide the cluster name and location
+          location: 'us-west1-a'  
+      - name: 'Use gcloud & kube CLI commands'
+        run: |
+          gcloud info
+          gcloud version
+          while IFS=";" read -r dep rep
+          do
+            echo "-----> Increasing replica count to $rep of deployment $dep ----->"
+            kubectl scale --replicas=$rep deployment/$dep
+          done < <(cat scale-down-deployments.csv)
+          # Load Balancer Backend Switch 
+          gcloud compute url-maps set-default-service --default-service=$secondary_external_lb_backend_service_name $secondary_external_lb_url_map --project="$gke_project_id"
+          # gcloud compute url-maps set-default-service --default-service=$secondary_internal_lb_backend_service_name $secondary_internal_lb_url_map --project="$gke_project_id"
+        
+  Rollback_To_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'true'
+    steps:
+      - name: "Clone the repo to copy the deployments.txt"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-central'  # Make sure you provide the cluster name and location
+          location: 'us-central1-c'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          
+          while IFS=";" read -r dep rep
+          do
+            echo "-----> Increasing replica count to $rep of deployment $dep ----->"
+            kubectl scale --replicas=$rep deployment/$dep
+          done < <(cat scale-down-deployments.csv)
+          # Load Balancer Switch
+          gcloud compute url-maps set-default-service --default-service=$primary_external_lb_backend_service_name $primary_external_lb_url_map --project="$gke_project_id"
+          # gcloud compute url-maps set-default-service --default-service=$primary_internal_lb_backend_service_name $primary_internal_lb_url_map --project="$gke_project_id"
+
+  SCALE_DOWN_DEPLOYMENTS_ON_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-west' # Make sure you provide the cluster name and location
+          location: 'us-west1-a'  
+      - name: "Scaling Deployemnts on primary cluster"
+        run: |
+          while IFS=";" read -r deployment
+          do
+            echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
+            kubectl scale --replicas=0 deployment/$deployment
+          done < <(cat scale-down-deployments.csv)
+ 
+  SCALE_DOWN_DEPLOYMENTS_ON_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: "Clone the repo to copy the deployments.txt"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-central'  # Make sure you provide the cluster name and location
+          location: 'us-central1-c'
+      - name: "Scaling Deployemnts on primary cluster"
+        run: |
+          while IFS=";" read -r deployment
+          do
+            echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
+            kubectl scale --replicas=0 deployment/$deployment
+          done < <(cat scale-down-deployments.csv)
+
+  DB_PROMOTION_PRIMARY_TO_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    needs: [SCALE_DOWN_DEPLOYMENTS_ON_PRIMARY]
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud sql instances promote-replica $geodb_secondary --quiet 
+          # gcloud sql instances promote-replica $notifydb_secondary --quiet &
+          # gcloud sql instances promote-replica $securitydb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $serviceproviderdb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $tresurydb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $workorderdb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $servicecatalogdb_dr_secondary --quiet
+          
+  DB_PROMOTION_SECONDARY_TO_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    needs: [SCALE_DOWN_DEPLOYMENTS_ON_SECONDARY]
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud sql instances promote-replica $geodb_primary --quiet 
+          # gcloud sql instances promote-replica $notifydb_primary --quiet &
+          # gcloud sql instances promote-replica $securitydb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $serviceproviderdb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $tresurydb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $workorderdb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $servicecatalogdb_dr_primary --quiet
+
+  GKE_BACKUP_RESTORE_PRIMARY_TO_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    needs: [DB_PROMOTION_PRIMARY_TO_SECONDARY]
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud components install beta
+          echo "================================> Beta component installed ========================================>"
+          # Create backup and restore manually
+
+          dt=$(date +%m-%d-%y)
+          backup_name_primary="$backup_name_primary-$RANDOM-$dt"
+          restore_name_primary="$restore_name_primary-$RANDOM-$dt"
+          if [ ${{ github.event.inputs.gke_backup_restore }} == "true" ]
+          then 
+            # Create backup 
+            echo " Creating Backup : $backup_name_primary"
+            gcloud beta container backup-restore backups create $backup_name_primary \
+                --project=$gke_project_id \
+                --location=$secondary_region  \
+                --backup-plan=$backup_plan_primary \
+                --wait-for-completion
+            # Restore Backup
+            echo " Restoring Backup : $restore_name_primary"
+            gcloud beta container backup-restore restores create $restore_name_primary \
+              --project=$gke_project_id \
+              --location=$secondary_region  \
+              --restore-plan=$restore_plan_secondary \
+              --backup="projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary/backups/$backup_name_primary" \
+              --wait-for-completion
+          else 
+            # Only Restore logic 
+
+            # Restore Backup 
+            backup_name_primary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary --project=$gke_project_id --location=us-east1 --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
+            echo "The latest backup is : $backup_name_primary"
+            echo " Restoring Backup : $restore_name_primary"
+            gcloud beta container backup-restore restores create $restore_name_primary \
+              --project=$gke_project_id \
+              --location=$secondary_region  \
+              --restore-plan=$restore_plan_secondary \
+              --backup=projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary/backups/$backup_name_primary \
+              --wait-for-completion
+          fi
+
+  GKE_BACKUP_RESTORE_SECONDARY_TO_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    needs: [DB_PROMOTION_SECONDARY_TO_PRIMARY]
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud components install beta
+          echo "================================> Beta Component Installed ========================================>"
+          # create backup and restore 
+          dt=$(date +%m-%d-%y)
+          backup_name_secondary="$backup_name_secondary-$RANDOM-$dt"
+          restore_name_secondary="$restore_name_secondary-$RANDOM-$dt"
+          if [ ${{ github.event.inputs.gke_backup_restore }} == "true" ]
+          then 
+            # Create backup 
+            echo "In if Loop us-west"
+            gcloud beta container backup-restore backups create $backup_name_secondary \
+              --project=$gke_project_id \
+              --location=$primary_region \
+              --backup-plan=$backup_plan_secondary \
+              --wait-for-completion
+            # Restore Backup
+            gcloud beta container backup-restore restores create $restore_name_secondary \
+              --project=$gke_project_id \
+              --location=$primary_region \
+              --restore-plan=$restore_plan_primary \
+              --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary/backups/$backup_name_secondary" \
+              --wait-for-completion
+          else 
+            # Only Restore logic 
+            echo "In else Loop us-west"
+            # Restore Backup 
+            backup_name_secondary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary_to_primary --project=$gke_project_id --location=us-east1 --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
+            echo "The latest backup file name as per search history is : $backup_name_secondary"
+            echo "projects/$gke_project_id/locations/us-west1/backupPlans/$restore_plan_secondary/backups/$backup_name_secondary"
+            gcloud beta container backup-restore restores create $restore_name_secondary \
+              --project=$gke_project_id \
+              --location=$primary_region \
+              --restore-plan=$restore_plan_primary \
+              --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary/backups/$backup_name_secondary" \
+              --wait-for-completion
+          fi
+  
+  SCALE_UP_DEPLOYMENTS_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    needs: [GKE_BACKUP_RESTORE_PRIMARY_TO_SECONDARY]
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-west' # Make sure you provide the cluster name and location
+          location: 'us-west1-a'  
+      - name: "Scaling Deployemnts on primary cluster"
+        run: |
+          while IFS=";" read -r dep rep
+          do
+            echo "-----> Increasing replica count to $rep of deployment $dep ----->"
+            kubectl scale --replicas=$rep deployment/$dep
+          done < <(cat scale-up-deployments-list.csv)
+ 
+  SCALE_UP_DEPLOYMENTS_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    needs: [GKE_BACKUP_RESTORE_SECONDARY_TO_PRIMARY]
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: "Clone the repo to copy the deployments.txt"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-central'  # Make sure you provide the cluster name and location
+          location: 'us-central1-c'
+      - name: "Scaling Deployemnts on primary cluster"
+        run: |
+          while IFS=";" read -r dep rep
+          do
+            echo "-----> Increasing replica count to $rep of deployment $dep ----->"
+            kubectl scale --replicas=$rep deployment/$dep
+          done < <(cat scale-up-deployments-list.csv)
+
+  LB_REBASE_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    needs: [SCALE_UP_DEPLOYMENTS_SECONDARY]
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud compute url-maps set-default-service --default-service=$secondary_external_lb_backend_service_name $secondary_external_lb_url_map --project="$gke_project_id"
+          # gcloud compute url-maps set-default-service --default-service=$secondary_internal_lb_backend_service_name $secondary_internal_lb_url_map --project="$gke_project_id"
+        
+  LB_REBASE_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    needs: [SCALE_UP_DEPLOYMENTS_PRIMARY]
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
+          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud compute url-maps set-default-service --default-service=$primary_external_lb_backend_service_name $primary_external_lb_url_map --project="$gke_project_id"
+          # gcloud compute url-maps set-default-service --default-service=$primary_internal_lb_backend_service_name $primary_internal_lb_url_map --project="$gke_project_id"
+  
+
