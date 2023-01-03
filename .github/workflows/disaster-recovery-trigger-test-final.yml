@@ -203,7 +203,7 @@ jobs:
           location: 'us-west1-a'  
       - name: "Scaling Deployemnts on primary cluster"
         run: |
-          while IFS=";" read -r deployment
+          while IFS=";" read -r deployment rep
           do
             echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
             kubectl scale --replicas=0 deployment/$deployment -n $namespace
@@ -231,7 +231,7 @@ jobs:
           location: 'us-central1-c'
       - name: "Scaling Deployemnts on primary cluster"
         run: |
-          while IFS=";" read -r deployment
+          while IFS=";" read -r deployment rep
           do
             echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
             kubectl scale --replicas=0 deployment/$deployment -n $namespace
