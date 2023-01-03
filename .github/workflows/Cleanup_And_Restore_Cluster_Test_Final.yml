@@ -17,6 +17,7 @@ env:
   
   gke_project_id: 'grand-thought-365806'
   vpc_name: 'thd-test-network'
+  namespace: 'myapps'
 ############################################################################ 
 
 ############################### ZONE INFO ##################################
@@ -99,7 +100,7 @@ jobs:
           while IFS=";" read -r dep
           do
             echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep
+            kubectl scale --replicas=0 deployment/$dep -n $namespace
           done < <(cat scale-up-deployments-list.csv)
  
   SCALE_DOWN_DEPLOYMENTS_PRIMARY:
@@ -127,7 +128,7 @@ jobs:
           while IFS=";" read -r dep
           do
             echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep
+            kubectl scale --replicas=0 deployment/$dep -n $namespace
           done < <(cat scale-up-deployments-list.csv)
 
   DB_DELETE_SECONDARY:
@@ -297,7 +298,7 @@ jobs:
             cp service-external.yml ${all_svc_names[$index]}.yml
             sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
             sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
-            kubectl apply -f ./${all_svc_names[$index]}.yml
+            kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
             done
 
             # notifydb_primary_ip=$(gcloud sql instances describe $notifydb_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
@@ -354,7 +355,7 @@ jobs:
             # geodb_primary_ip=$(gcloud sql instances describe $geodb_secondary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
             # cp service-external.yml geodb_external_service.yml
             # sed -i "s/svcname/postgres-service/" "./geodb_external_service.yml"
-            # sed -i "s/IP/$geodb_primary_ip/" "./geodb_external_service.yml"
+            # sed -i "s/IP/$geodb_primary_ip/" "./geodb_external_service.yml" 
             # kubectl apply -f ./geodb_external_service.yml
           
 
@@ -367,5 +368,5 @@ jobs:
             cp service-external.yml ${all_svc_names[$index]}.yml
             sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
             sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
-            kubectl apply -f ./${all_svc_names[$index]}.yml
+            kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
             done
