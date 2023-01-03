@@ -81,6 +81,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
+    needs: [REPLICA_CREATE_PRIMARY]
     if: inputs.clean_up_region == 'us-central'
     steps:
       - name: "Clone the repo to copy the service-external.yml"
@@ -109,7 +110,7 @@ jobs:
             
             all_dbs_central=("db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central")
             all_svc_names=("postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service")
-            for (index=0;index<${#all_dbs_central[@]};index++)
+            for ((index=0;index<${#all_dbs_central[@]};index++))
             do
                 db_ip=$(gcloud sql instances describe ${all_dbs_central[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
                 cp service-external.yml ${all_svc_names[$index]}.yml
@@ -117,6 +118,8 @@ jobs:
                 sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
                 kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
             done
+
+
 
 
             # notifydb_primary_ip=$(gcloud sql instances describe $notifydb_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
@@ -149,6 +152,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
+    needs: [REPLICA_CREATE_SECONDARY]
     if: inputs.clean_up_region == 'us-west'
     steps:
       - name: "Clone the repo to copy the service-external.yml"
@@ -177,7 +181,7 @@ jobs:
 
             all_dbs_west=("db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west")
             all_svc_names=("postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service")
-            for (index=0;index<${#all_dbs_west[@]};index++)
+            for ((index=0;index<${#all_dbs_west[@]};index++))
             do
                 db_ip=$(gcloud sql instances describe ${all_dbs_west[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
                 cp service-external.yml ${all_svc_names[$index]}.yml
@@ -185,4 +189,3 @@ jobs:
                 sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
                 kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
             done
-
