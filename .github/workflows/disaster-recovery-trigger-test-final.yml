@@ -4,6 +4,7 @@ env:
 
 ########################### PROJECT DETAILS ################################
   gke_project_id: 'grand-thought-365806'
+  namespace: 'myapps'
 ############################################################################ 
 
 ############################### ZONE INFO ################################## 
@@ -139,7 +140,7 @@ jobs:
           while IFS=";" read -r dep rep
           do
             echo "-----> Increasing replica count to $rep of deployment $dep ----->"
-            kubectl scale --replicas=$rep deployment/$dep
+            kubectl scale --replicas=$rep deployment/$dep -n $namespace
           done < <(cat scale-down-deployments.csv)
           # Load Balancer Backend Switch 
           gcloud compute url-maps set-default-service --default-service=$secondary_external_lb_backend_service_name $secondary_external_lb_url_map --project="$gke_project_id"
@@ -174,7 +175,7 @@ jobs:
           while IFS=";" read -r dep rep
           do
             echo "-----> Increasing replica count to $rep of deployment $dep ----->"
-            kubectl scale --replicas=$rep deployment/$dep
+            kubectl scale --replicas=$rep deployment/$dep -n $namespace
           done < <(cat scale-down-deployments.csv)
           # Load Balancer Switch
           gcloud compute url-maps set-default-service --default-service=$primary_external_lb_backend_service_name $primary_external_lb_url_map --project="$gke_project_id"
@@ -205,7 +206,7 @@ jobs:
           while IFS=";" read -r deployment
           do
             echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
-            kubectl scale --replicas=0 deployment/$deployment
+            kubectl scale --replicas=0 deployment/$deployment -n $namespace
           done < <(cat scale-down-deployments.csv)
  
   SCALE_DOWN_DEPLOYMENTS_ON_PRIMARY:
@@ -233,7 +234,7 @@ jobs:
           while IFS=";" read -r deployment
           do
             echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
-            kubectl scale --replicas=0 deployment/$deployment
+            kubectl scale --replicas=0 deployment/$deployment -n $namespace
           done < <(cat scale-down-deployments.csv)
 
   DB_PROMOTION_PRIMARY_TO_SECONDARY:
@@ -430,7 +431,7 @@ jobs:
           while IFS=";" read -r dep rep
           do
             echo "-----> Increasing replica count to $rep of deployment $dep ----->"
-            kubectl scale --replicas=$rep deployment/$dep
+            kubectl scale --replicas=$rep deployment/$dep -n $namespace
           done < <(cat scale-up-deployments-list.csv)
  
   SCALE_UP_DEPLOYMENTS_PRIMARY:
@@ -459,7 +460,7 @@ jobs:
           while IFS=";" read -r dep rep
           do
             echo "-----> Increasing replica count to $rep of deployment $dep ----->"
-            kubectl scale --replicas=$rep deployment/$dep
+            kubectl scale --replicas=$rep deployment/$dep -n $namespace
           done < <(cat scale-up-deployments-list.csv)
 
   LB_REBASE_SECONDARY:
