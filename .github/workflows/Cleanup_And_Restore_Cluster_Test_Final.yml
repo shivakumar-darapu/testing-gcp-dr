@@ -282,49 +282,19 @@ jobs:
         run: |
             gcloud info
             gcloud version
-            # geodb_primary_ip=$(gcloud sql instances describe $geodb_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml geodb_external_service.yml
-            # sed -i "s/svcname/postgres-service/" "./geodb_external_service.yml"
-            # sed -i "s/IP/$geodb_primary_ip/" "./geodb_external_service.yml"
-            # kubectl apply -f ./geodb_external_service.yml
-            
 
-            all_dbs_central: ["db-us-central","db-us-central","db-us-central","db-us-central","db-us-central","db-us-central","db-us-central"]
-            all_svc_names: ["postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service"]
             
-            for index in ${!array[*]}
-            do 
-            db_ip=$(gcloud sql instances describe ${all_dbs_central[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            cp service-external.yml ${all_svc_names[$index]}.yml
-            sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
-            sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
-            kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+            all_dbs_central=("db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central")
+            all_svc_names=("postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service")
+            for ((index=0;index<${#all_dbs_central[@]};index++))
+            do
+                db_ip=$(gcloud sql instances describe ${all_dbs_central[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+                cp service-external.yml ${all_svc_names[$index]}.yml
+                sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+                sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+                kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
             done
 
-            # notifydb_primary_ip=$(gcloud sql instances describe $notifydb_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml notifydb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./notifydb_external_service.yml"
-            # kubectl apply -f ./notifydb_external_service.yml
-            # securitydb_dr_primary_ip=$(gcloud sql instances describe $securitydb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml notifydb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
-            # serviceproviderdb_dr_primary_ip=$(gcloud sql instances describe $serviceproviderdb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml serviceproviderdb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
-            # tresurydb_dr_primary_ip=$(gcloud sql instances describe $tresurydb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml tresurydb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
-            # workorderdb_dr_primary_ip=$(gcloud sql instances describe $workorderdb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml workorderdb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
-            # servicecatalogdb_dr_primary_ip=$(gcloud sql instances describe $servicecatalogdb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml servicecatalogdb_external_service.yml
-            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
-            # kubectl apply -f ./external-service/serive-external.yml
 
   UPDATE_POSTGRESQL_IP_SECONDARY:
     permissions:
@@ -352,21 +322,13 @@ jobs:
         run: |
             gcloud info
             gcloud version
-            # geodb_primary_ip=$(gcloud sql instances describe $geodb_secondary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            # cp service-external.yml geodb_external_service.yml
-            # sed -i "s/svcname/postgres-service/" "./geodb_external_service.yml"
-            # sed -i "s/IP/$geodb_primary_ip/" "./geodb_external_service.yml" 
-            # kubectl apply -f ./geodb_external_service.yml
-          
-
-            all_dbs_west: ["db-us-west","db-us-west","db-us-west","db-us-west","db-us-west","db-us-west","db-us-west"]
-            all_svc_names: ["postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service"]
-            
-            for index in ${!array[*]}
-            do 
-            db_ip=$(gcloud sql instances describe ${all_dbs_west[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-            cp service-external.yml ${all_svc_names[$index]}.yml
-            sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
-            sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
-            kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+            all_dbs_west=("db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west")
+            all_svc_names=("postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service")
+            for ((index=0;index<${#all_dbs_west[@]};index++))
+            do
+                db_ip=$(gcloud sql instances describe ${all_dbs_west[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+                cp service-external.yml ${all_svc_names[$index]}.yml
+                sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+                sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+                kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
             done
