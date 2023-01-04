@@ -181,11 +181,124 @@ jobs:
           gcloud compute url-maps set-default-service --default-service=$primary_external_lb_backend_service_name $primary_external_lb_url_map --project="$gke_project_id"
           # gcloud compute url-maps set-default-service --default-service=$primary_internal_lb_backend_service_name $primary_internal_lb_url_map --project="$gke_project_id"
 
+  GKE_BACKUP_RESTORE_PRIMARY_TO_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud components install beta
+          echo "================================> Beta component installed ========================================>"
+          # Create backup and restore manually
+
+          dt=$(date +%m-%d-%y)
+          backup_name_primary="$backup_name_primary-$RANDOM-$dt"
+          restore_name_primary="$restore_name_primary-$RANDOM-$dt"
+          if [ ${{ github.event.inputs.gke_backup_restore }} == "true" ]
+          then 
+            # Create backup 
+            echo " Creating Backup : $backup_name_primary"
+            gcloud beta container backup-restore backups create $backup_name_primary \
+                --project=$gke_project_id \
+                --location=$secondary_region  \
+                --backup-plan=$backup_plan_primary \
+                --wait-for-completion
+            # Restore Backup
+            echo " Restoring Backup : $restore_name_primary"
+            gcloud beta container backup-restore restores create $restore_name_primary \
+              --project=$gke_project_id \
+              --location=$secondary_region  \
+              --restore-plan=$restore_plan_secondary \
+              --backup="projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary/backups/$backup_name_primary" \
+              --wait-for-completion
+          else 
+            # Only Restore logic 
+
+            # Restore Backup 
+            backup_name_primary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary --project=$gke_project_id --location=us-east1 --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
+            echo "The latest backup is : $backup_name_primary"
+            echo " Restoring Backup : $restore_name_primary"
+            gcloud beta container backup-restore restores create $restore_name_primary \
+              --project=$gke_project_id \
+              --location=$secondary_region  \
+              --restore-plan=$restore_plan_secondary \
+              --backup=projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary/backups/$backup_name_primary \
+              --wait-for-completion
+          fi
+
+  GKE_BACKUP_RESTORE_SECONDARY_TO_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud components install beta
+          echo "================================> Beta Component Installed ========================================>"
+          # create backup and restore 
+          dt=$(date +%m-%d-%y)
+          backup_name_secondary="$backup_name_secondary-$RANDOM-$dt"
+          restore_name_secondary="$restore_name_secondary-$RANDOM-$dt"
+          if [ ${{ github.event.inputs.gke_backup_restore }} == "true" ]
+          then 
+            # Create backup 
+            echo "In if Loop us-west"
+            gcloud beta container backup-restore backups create $backup_name_secondary \
+              --project=$gke_project_id \
+              --location=$primary_region \
+              --backup-plan=$backup_plan_secondary \
+              --wait-for-completion
+            # Restore Backup
+            gcloud beta container backup-restore restores create $restore_name_secondary \
+              --project=$gke_project_id \
+              --location=$primary_region \
+              --restore-plan=$restore_plan_primary \
+              --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary/backups/$backup_name_secondary" \
+              --wait-for-completion
+          else 
+            # Only Restore logic 
+            echo "In else Loop us-west"
+            # Restore Backup 
+            backup_name_secondary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary_to_primary --project=$gke_project_id --location=us-east1 --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
+            echo "The latest backup file name as per search history is : $backup_name_secondary"
+            echo "projects/$gke_project_id/locations/us-west1/backupPlans/$restore_plan_secondary/backups/$backup_name_secondary"
+            gcloud beta container backup-restore restores create $restore_name_secondary \
+              --project=$gke_project_id \
+              --location=$primary_region \
+              --restore-plan=$restore_plan_primary \
+              --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary/backups/$backup_name_secondary" \
+              --wait-for-completion
+          fi
+
   SCALE_DOWN_DEPLOYMENTS_ON_SECONDARY:
     permissions:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
+    needs: [GKE_BACKUP_RESTORE_SECONDARY_TO_PRIMARY]
     if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
     steps:
       - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
@@ -214,6 +327,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
+    needs: [GKE_BACKUP_RESTORE_PRIMARY_TO_SECONDARY]
     if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
     steps:
       - name: "Clone the repo to copy the deployments.txt"
@@ -291,125 +405,11 @@ jobs:
           # gcloud sql instances promote-replica $workorderdb_dr_primary --quiet &
           # gcloud sql instances promote-replica $servicecatalogdb_dr_primary --quiet
 
-  GKE_BACKUP_RESTORE_PRIMARY_TO_SECONDARY:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    runs-on: ubuntu-latest
-    needs: [DB_PROMOTION_PRIMARY_TO_SECONDARY]
-    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
-    steps:
-      - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v1'
-        with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
-          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-      - name: 'Use gcloud CLI'
-        run: |
-          gcloud info
-          gcloud version
-          gcloud components install beta
-          echo "================================> Beta component installed ========================================>"
-          # Create backup and restore manually
-
-          dt=$(date +%m-%d-%y)
-          backup_name_primary="$backup_name_primary-$RANDOM-$dt"
-          restore_name_primary="$restore_name_primary-$RANDOM-$dt"
-          if [ ${{ github.event.inputs.gke_backup_restore }} == "true" ]
-          then 
-            # Create backup 
-            echo " Creating Backup : $backup_name_primary"
-            gcloud beta container backup-restore backups create $backup_name_primary \
-                --project=$gke_project_id \
-                --location=$secondary_region  \
-                --backup-plan=$backup_plan_primary \
-                --wait-for-completion
-            # Restore Backup
-            echo " Restoring Backup : $restore_name_primary"
-            gcloud beta container backup-restore restores create $restore_name_primary \
-              --project=$gke_project_id \
-              --location=$secondary_region  \
-              --restore-plan=$restore_plan_secondary \
-              --backup="projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary/backups/$backup_name_primary" \
-              --wait-for-completion
-          else 
-            # Only Restore logic 
-
-            # Restore Backup 
-            backup_name_primary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary --project=$gke_project_id --location=us-east1 --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
-            echo "The latest backup is : $backup_name_primary"
-            echo " Restoring Backup : $restore_name_primary"
-            gcloud beta container backup-restore restores create $restore_name_primary \
-              --project=$gke_project_id \
-              --location=$secondary_region  \
-              --restore-plan=$restore_plan_secondary \
-              --backup=projects/$gke_project_id/locations/$secondary_region/backupPlans/$backup_plan_primary/backups/$backup_name_primary \
-              --wait-for-completion
-          fi
-
-  GKE_BACKUP_RESTORE_SECONDARY_TO_PRIMARY:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    runs-on: ubuntu-latest
-    needs: [DB_PROMOTION_SECONDARY_TO_PRIMARY]
-    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
-    steps:
-      - name: Set up gcloud Cloud SDK environment
-        uses: 'google-github-actions/auth@v1'
-        with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
-          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
-      - name: 'Use gcloud CLI'
-        run: |
-          gcloud info
-          gcloud version
-          gcloud components install beta
-          echo "================================> Beta Component Installed ========================================>"
-          # create backup and restore 
-          dt=$(date +%m-%d-%y)
-          backup_name_secondary="$backup_name_secondary-$RANDOM-$dt"
-          restore_name_secondary="$restore_name_secondary-$RANDOM-$dt"
-          if [ ${{ github.event.inputs.gke_backup_restore }} == "true" ]
-          then 
-            # Create backup 
-            echo "In if Loop us-west"
-            gcloud beta container backup-restore backups create $backup_name_secondary \
-              --project=$gke_project_id \
-              --location=$primary_region \
-              --backup-plan=$backup_plan_secondary \
-              --wait-for-completion
-            # Restore Backup
-            gcloud beta container backup-restore restores create $restore_name_secondary \
-              --project=$gke_project_id \
-              --location=$primary_region \
-              --restore-plan=$restore_plan_primary \
-              --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary/backups/$backup_name_secondary" \
-              --wait-for-completion
-          else 
-            # Only Restore logic 
-            echo "In else Loop us-west"
-            # Restore Backup 
-            backup_name_secondary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary_to_primary --project=$gke_project_id --location=us-east1 --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
-            echo "The latest backup file name as per search history is : $backup_name_secondary"
-            echo "projects/$gke_project_id/locations/us-west1/backupPlans/$restore_plan_secondary/backups/$backup_name_secondary"
-            gcloud beta container backup-restore restores create $restore_name_secondary \
-              --project=$gke_project_id \
-              --location=$primary_region \
-              --restore-plan=$restore_plan_primary \
-              --backup="projects/$gke_project_id/locations/$primary_region/backupPlans/$backup_plan_secondary/backups/$backup_name_secondary" \
-              --wait-for-completion
-          fi
-  
   SCALE_UP_DEPLOYMENTS_SECONDARY:
     permissions:
       contents: 'read'
       id-token: 'write'
-    needs: [GKE_BACKUP_RESTORE_PRIMARY_TO_SECONDARY]
+    needs: [DB_PROMOTION_PRIMARY_TO_SECONDARY]
     runs-on: ubuntu-latest
     if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
     steps:
@@ -438,7 +438,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-    needs: [GKE_BACKUP_RESTORE_SECONDARY_TO_PRIMARY]
+    needs: [DB_PROMOTION_SECONDARY_TO_PRIMARY]
     runs-on: ubuntu-latest
     if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
     steps:
