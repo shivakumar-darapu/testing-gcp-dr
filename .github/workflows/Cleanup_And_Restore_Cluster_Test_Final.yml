@@ -1,4 +1,4 @@
-name: Cleanup_And_Restore_Cluster
+name: Cleanup_And_Restore_Cluster_Test_Final
 
 # Controls when the workflow will run
 on:
