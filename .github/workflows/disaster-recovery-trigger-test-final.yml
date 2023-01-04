@@ -181,115 +181,115 @@ jobs:
           gcloud compute url-maps set-default-service --default-service=$primary_external_lb_backend_service_name $primary_external_lb_url_map --project="$gke_project_id"
           # gcloud compute url-maps set-default-service --default-service=$primary_internal_lb_backend_service_name $primary_internal_lb_url_map --project="$gke_project_id"
 
-  # SCALE_DOWN_DEPLOYMENTS_ON_SECONDARY:
-  #   permissions:
-  #     contents: 'read'
-  #     id-token: 'write'
-  #   runs-on: ubuntu-latest
-  #   if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
-  #   steps:
-  #     - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
-  #       uses: actions/checkout@v3
-  #     - name: Set up gcloud Cloud SDK environment
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #       # Please provide the workload_identity_provider & service_account
-  #         workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
-  #         service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/get-gke-credentials@v1'
-  #       with:
-  #         cluster_name: 'us-west' # Make sure you provide the cluster name and location
-  #         location: 'us-west1-a'  
-  #     - name: "Scaling Deployemnts on primary cluster"
-  #       run: |
-  #         while IFS=";" read -r deployment rep
-  #         do
-  #           echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
-  #           kubectl scale --replicas=0 deployment/$deployment -n $namespace
-  #         done < <(cat scale-down-deployments.csv)
+  SCALE_DOWN_DEPLOYMENTS_ON_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-west' # Make sure you provide the cluster name and location
+          location: 'us-west1-a'  
+      - name: "Scaling Deployemnts on primary cluster"
+        run: |
+          while IFS=";" read -r deployment rep
+          do
+            echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
+            kubectl scale --replicas=0 deployment/$deployment -n $namespace
+          done < <(cat scale-down-deployments.csv)
  
-  # SCALE_DOWN_DEPLOYMENTS_ON_PRIMARY:
-  #   permissions:
-  #     contents: 'read'
-  #     id-token: 'write'
-  #   runs-on: ubuntu-latest
-  #   if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
-  #   steps:
-  #     - name: "Clone the repo to copy the deployments.txt"
-  #       uses: actions/checkout@v3
-  #     - name: Set up gcloud Cloud SDK environment
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #       # Please provide the workload_identity_provider & service_account
-  #         workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
-  #         service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/get-gke-credentials@v1'
-  #       with:
-  #         cluster_name: 'us-cluster'  # Make sure you provide the cluster name and location
-  #         location: 'us-central1-c'
-  #     - name: "Scaling Deployemnts on primary cluster"
-  #       run: |
-  #         while IFS=";" read -r deployment
-  #         do
-  #           echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
-  #           kubectl scale --replicas=0 deployment/$deployment -n $namespace
-  #         done < <(cat scale-down-deployments.csv)
+  SCALE_DOWN_DEPLOYMENTS_ON_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: "Clone the repo to copy the deployments.txt"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-cluster'  # Make sure you provide the cluster name and location
+          location: 'us-central1-c'
+      - name: "Scaling Deployemnts on primary cluster"
+        run: |
+          while IFS=";" read -r deployment
+          do
+            echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
+            kubectl scale --replicas=0 deployment/$deployment -n $namespace
+          done < <(cat scale-down-deployments.csv)
 
-  # DB_PROMOTION_PRIMARY_TO_SECONDARY:
-  #   permissions:
-  #     contents: 'read'
-  #     id-token: 'write'
-  #   runs-on: ubuntu-latest
-  #   needs: [SCALE_DOWN_DEPLOYMENTS_ON_PRIMARY]
-  #   if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
-  #   steps:
-  #     - name: Set up gcloud Cloud SDK environment
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #         workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
-  #         service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/setup-gcloud@v1'
-  #     - name: 'Use gcloud CLI'
-  #       run: |
-  #         gcloud info
-  #         gcloud version
-  #         gcloud sql instances promote-replica $geodb_secondary --quiet 
-  #         # gcloud sql instances promote-replica $notifydb_secondary --quiet &
-  #         # gcloud sql instances promote-replica $securitydb_dr_secondary --quiet &
-  #         # gcloud sql instances promote-replica $serviceproviderdb_dr_secondary --quiet &
-  #         # gcloud sql instances promote-replica $tresurydb_dr_secondary --quiet &
-  #         # gcloud sql instances promote-replica $workorderdb_dr_secondary --quiet &
-  #         # gcloud sql instances promote-replica $servicecatalogdb_dr_secondary --quiet
+  DB_PROMOTION_PRIMARY_TO_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    needs: [SCALE_DOWN_DEPLOYMENTS_ON_PRIMARY]
+    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud sql instances promote-replica $geodb_secondary --quiet 
+          # gcloud sql instances promote-replica $notifydb_secondary --quiet &
+          # gcloud sql instances promote-replica $securitydb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $serviceproviderdb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $tresurydb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $workorderdb_dr_secondary --quiet &
+          # gcloud sql instances promote-replica $servicecatalogdb_dr_secondary --quiet
           
-  # DB_PROMOTION_SECONDARY_TO_PRIMARY:
-  #   permissions:
-  #     contents: 'read'
-  #     id-token: 'write'
-  #   runs-on: ubuntu-latest
-  #   needs: [SCALE_DOWN_DEPLOYMENTS_ON_SECONDARY]
-  #   if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
-  #   steps:
-  #     - name: Set up gcloud Cloud SDK environment
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #         workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
-  #         service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/setup-gcloud@v1'
-  #     - name: 'Use gcloud CLI'
-  #       run: |
-  #         gcloud info
-  #         gcloud version
-  #         gcloud sql instances promote-replica $geodb_primary --quiet 
-  #         # gcloud sql instances promote-replica $notifydb_primary --quiet &
-  #         # gcloud sql instances promote-replica $securitydb_dr_primary --quiet &
-  #         # gcloud sql instances promote-replica $serviceproviderdb_dr_primary --quiet &
-  #         # gcloud sql instances promote-replica $tresurydb_dr_primary --quiet &
-  #         # gcloud sql instances promote-replica $workorderdb_dr_primary --quiet &
-  #         # gcloud sql instances promote-replica $servicecatalogdb_dr_primary --quiet
+  DB_PROMOTION_SECONDARY_TO_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    needs: [SCALE_DOWN_DEPLOYMENTS_ON_SECONDARY]
+    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          gcloud info
+          gcloud version
+          gcloud sql instances promote-replica $geodb_primary --quiet 
+          # gcloud sql instances promote-replica $notifydb_primary --quiet &
+          # gcloud sql instances promote-replica $securitydb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $serviceproviderdb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $tresurydb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $workorderdb_dr_primary --quiet &
+          # gcloud sql instances promote-replica $servicecatalogdb_dr_primary --quiet
 
   GKE_BACKUP_RESTORE_PRIMARY_TO_SECONDARY:
     permissions:
@@ -354,7 +354,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
-   # needs: [DB_PROMOTION_SECONDARY_TO_PRIMARY]
+    needs: [DB_PROMOTION_SECONDARY_TO_PRIMARY]
     if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'false'
     steps:
       - name: Set up gcloud Cloud SDK environment
@@ -409,7 +409,7 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
-   # needs: [GKE_BACKUP_RESTORE_PRIMARY_TO_SECONDARY]
+    needs: [GKE_BACKUP_RESTORE_PRIMARY_TO_SECONDARY]
     runs-on: ubuntu-latest
     if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'false'
     steps:
