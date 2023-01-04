@@ -17,11 +17,12 @@ env:
   
   gke_project_id: 'grand-thought-365806'
   vpc_name: 'thd-test-network'
+  namespace: 'myapps'
 ############################################################################ 
 
 ############################### ZONE INFO ##################################
   zone_secondary: us-west1-a
-  zone_primary: us-central1-c
+  zone_primary: us-central1-b 
 ############################################################################
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> PRIMARY CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -87,8 +88,8 @@ jobs:
         uses: 'google-github-actions/auth@v0'
         with:
         # Please provide the workload_identity_provider & service_account
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
@@ -96,10 +97,10 @@ jobs:
           location: 'us-west1-a'  
       - name: "Scaling Deployemnts on primary cluster"
         run: |
-          while IFS=";" read -r dep
+          while IFS=";" read -r dep rep
           do
             echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep
+            kubectl scale --replicas=0 deployment/$dep -n $namespace
           done < <(cat scale-up-deployments-list.csv)
  
   SCALE_DOWN_DEPLOYMENTS_PRIMARY:
@@ -115,19 +116,19 @@ jobs:
         uses: 'google-github-actions/auth@v0'
         with:
         # Please provide the workload_identity_provider & service_account
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/get-gke-credentials@v1'
         with:
-          cluster_name: 'us-central'  # Make sure you provide the cluster name and location
+          cluster_name: 'us-cluster'  # Make sure you provide the cluster name and location
           location: 'us-central1-c'
       - name: "Scaling Deployemnts on primary cluster"
         run: |
-          while IFS=";" read -r dep
+          while IFS=";" read -r dep rep
           do
             echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep
+            kubectl scale --replicas=0 deployment/$dep -n $namespace
           done < <(cat scale-up-deployments-list.csv)
 
   DB_DELETE_SECONDARY:
@@ -141,8 +142,8 @@ jobs:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: 'Use gcloud CLI'
@@ -175,8 +176,8 @@ jobs:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: 'Use gcloud CLI'
@@ -204,8 +205,8 @@ jobs:
         - name: Set up gcloud Cloud SDK environment
           uses: 'google-github-actions/auth@v1'
           with:
-            workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-            service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+            workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+            service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
         - name: 'Set up Cloud SDK'
           uses: 'google-github-actions/setup-gcloud@v1'
         - name: 'Use gcloud CLI'
@@ -237,8 +238,8 @@ jobs:
       - name: Set up gcloud Cloud SDK environment
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/github-dr-pool/providers/github-dr-provider'
-          service_account: 'github-test-dr@grand-thought-365806.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: 'Use gcloud CLI'
@@ -254,12 +255,13 @@ jobs:
           # gcloud sql instances create $workorderdb_primary --master-instance-name=$workorderdb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
           # gcloud sql instances create $servicecatalogdb_primary --master-instance-name=$servicecatalogdb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
           # gcloud sql instances create $serviceproviderdb_primary --master-instance-name=$serviceproviderdb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet 
- 
+        
   UPDATE_POSTGRESQL_IP_PRIMARY:
     permissions:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
+    needs: [REPLICA_CREATE_PRIMARY]
     if: inputs.clean_up_region == 'us-central'
     steps:
       - name: "Clone the repo to copy the service-external.yml"
@@ -280,22 +282,56 @@ jobs:
         run: |
             gcloud info
             gcloud version
-            all_dbs_central=("db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central")
-            all_svc_names=("postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service")
-            for ((index=0;index<${#all_dbs_central[@]};index++))
-            do
-                db_ip=$(gcloud sql instances describe ${all_dbs_central[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-                cp service-external.yml ${all_svc_names[$index]}.yml
-                sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
-                sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
-                kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+            # geodb_primary_ip=$(gcloud sql instances describe $geodb_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            # cp service-external.yml geodb_external_service.yml
+            # sed -i "s/svcname/postgres-service/" "./geodb_external_service.yml"
+            # sed -i "s/IP/$geodb_primary_ip/" "./geodb_external_service.yml"
+            # kubectl apply -f ./geodb_external_service.yml
+            
+
+            all_dbs_central: ["db-us-central","db-us-central","db-us-central","db-us-central","db-us-central","db-us-central","db-us-central"]
+            all_svc_names: ["postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service"]
+            
+            for index in ${!array[*]}
+            do 
+            db_ip=$(gcloud sql instances describe ${all_dbs_central[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            cp service-external.yml ${all_svc_names[$index]}.yml
+            sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+            sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+            kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
             done
+
+            # notifydb_primary_ip=$(gcloud sql instances describe $notifydb_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            # cp service-external.yml notifydb_external_service.yml
+            # sed -i "s/IP/$dbip/" "./notifydb_external_service.yml"
+            # kubectl apply -f ./notifydb_external_service.yml
+            # securitydb_dr_primary_ip=$(gcloud sql instances describe $securitydb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            # cp service-external.yml notifydb_external_service.yml
+            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
+            # kubectl apply -f ./external-service/serive-external.yml
+            # serviceproviderdb_dr_primary_ip=$(gcloud sql instances describe $serviceproviderdb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            # cp service-external.yml serviceproviderdb_external_service.yml
+            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
+            # kubectl apply -f ./external-service/serive-external.yml
+            # tresurydb_dr_primary_ip=$(gcloud sql instances describe $tresurydb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            # cp service-external.yml tresurydb_external_service.yml
+            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
+            # kubectl apply -f ./external-service/serive-external.yml
+            # workorderdb_dr_primary_ip=$(gcloud sql instances describe $workorderdb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            # cp service-external.yml workorderdb_external_service.yml
+            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
+            # kubectl apply -f ./external-service/serive-external.yml
+            # servicecatalogdb_dr_primary_ip=$(gcloud sql instances describe $servicecatalogdb_dr_primary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            # cp service-external.yml servicecatalogdb_external_service.yml
+            # sed -i "s/IP/$dbip/" "./external-service/serive-external.yml"
+            # kubectl apply -f ./external-service/serive-external.yml
 
   UPDATE_POSTGRESQL_IP_SECONDARY:
     permissions:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
+    needs: [REPLICA_CREATE_SECONDARY]
     if: inputs.clean_up_region == 'us-west'
     steps:
       - name: "Clone the repo to copy the service-external.yml"
@@ -316,13 +352,21 @@ jobs:
         run: |
             gcloud info
             gcloud version
-            all_dbs_west=("db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west")
-            all_svc_names=("postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service")
-            for ((index=0;index<${#all_dbs_west[@]};index++))
-            do
-                db_ip=$(gcloud sql instances describe ${all_dbs_west[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
-                cp service-external.yml ${all_svc_names[$index]}.yml
-                sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
-                sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
-                kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+            # geodb_primary_ip=$(gcloud sql instances describe $geodb_secondary --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            # cp service-external.yml geodb_external_service.yml
+            # sed -i "s/svcname/postgres-service/" "./geodb_external_service.yml"
+            # sed -i "s/IP/$geodb_primary_ip/" "./geodb_external_service.yml" 
+            # kubectl apply -f ./geodb_external_service.yml
+          
+
+            all_dbs_west: ["db-us-west","db-us-west","db-us-west","db-us-west","db-us-west","db-us-west","db-us-west"]
+            all_svc_names: ["postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service","postgres-service"]
+            
+            for index in ${!array[*]}
+            do 
+            db_ip=$(gcloud sql instances describe ${all_dbs_west[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+            cp service-external.yml ${all_svc_names[$index]}.yml
+            sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+            sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+            kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
             done
