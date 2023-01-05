@@ -149,6 +149,18 @@ jobs:
           # gcloud sql instances create $workorderdb_secondary --master-instance-name=$workorderdb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
           # gcloud sql instances create $servicecatalogdb_secondary --master-instance-name=$servicecatalogdb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
           # gcloud sql instances create $serviceproviderdb_secondary --master-instance-name=$serviceproviderdb_primary --zone=$zone_secondary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet  
+          echo "---------------> Updating the Service with new IP's of Replicas <----------------------"
+          all_dbs_west=("db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west" "db-us-west")
+          all_svc_names=("postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service")
+          for ((index=0;index<${#all_dbs_west[@]};index++))
+          do
+              db_ip=$(gcloud sql instances describe ${all_dbs_west[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+              cp service-external.yml ${all_svc_names[$index]}.yml
+              sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+              sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+              kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+          done
+
           
   Rollback_CleanUP_ON_PRIMARY:
     permissions:
@@ -217,6 +229,17 @@ jobs:
           # gcloud sql instances create $workorderdb_primary --master-instance-name=$workorderdb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
           # gcloud sql instances create $servicecatalogdb_primary --master-instance-name=$servicecatalogdb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet &
           # gcloud sql instances create $serviceproviderdb_primary --master-instance-name=$serviceproviderdb_secondary --zone=$zone_primary --replica-type=READ --replication=synchronous --deletion-protection --no-assign-ip --network="projects/$gke_project_id/global/networks/$vpc_name" --quiet 
+          echo "---------------> Updating the Service's with new IP's of Replicas <----------------------"
+          all_dbs_central=("db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central")
+          all_svc_names=("postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service")
+          for ((index=0;index<${#all_dbs_central[@]};index++))
+          do
+              db_ip=$(gcloud sql instances describe ${all_dbs_central[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+              cp service-external.yml ${all_svc_names[$index]}.yml
+              sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+              sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+              kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+          done
           
   SCALE_DOWN_DEPLOYMENTS_SECONDARY:
     permissions:
