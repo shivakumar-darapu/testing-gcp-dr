@@ -87,7 +87,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
-    if: inputs.switch_to_region == 'us-west' && inputs.rollback == 'true'
+    if: inputs.clean_up_region == 'us-west' && inputs.rollback == 'true'
     steps:
       - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
         uses: actions/checkout@v3
@@ -155,7 +155,7 @@ jobs:
       contents: 'read'
       id-token: 'write'
     runs-on: ubuntu-latest
-    if: inputs.switch_to_region == 'us-central' && inputs.rollback == 'true'
+    if: inputs.clean_up_region == 'us-central' && inputs.rollback == 'true'
     steps:
       - name: "Clone the repo to copy the deployments.txt"
         uses: actions/checkout@v3
