@@ -370,6 +370,7 @@ jobs:
         run: |
           gcloud info
           gcloud version
+          if [ "$(gcloud sql instances describe $geodb_secondary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
           gcloud sql instances promote-replica $geodb_secondary --quiet 
           # gcloud sql instances promote-replica $notifydb_secondary --quiet &
           # gcloud sql instances promote-replica $securitydb_dr_secondary --quiet &
@@ -377,6 +378,7 @@ jobs:
           # gcloud sql instances promote-replica $tresurydb_dr_secondary --quiet &
           # gcloud sql instances promote-replica $workorderdb_dr_secondary --quiet &
           # gcloud sql instances promote-replica $servicecatalogdb_dr_secondary --quiet
+          fi
           
   DB_PROMOTION_SECONDARY_TO_PRIMARY:
     permissions:
@@ -397,6 +399,7 @@ jobs:
         run: |
           gcloud info
           gcloud version
+          if [ "$(gcloud sql instances describe $geodb_primary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
           gcloud sql instances promote-replica $geodb_primary --quiet 
           # gcloud sql instances promote-replica $notifydb_primary --quiet &
           # gcloud sql instances promote-replica $securitydb_dr_primary --quiet &
@@ -404,6 +407,7 @@ jobs:
           # gcloud sql instances promote-replica $tresurydb_dr_primary --quiet &
           # gcloud sql instances promote-replica $workorderdb_dr_primary --quiet &
           # gcloud sql instances promote-replica $servicecatalogdb_dr_primary --quiet
+          fi
 
   SCALE_UP_DEPLOYMENTS_SECONDARY:
     permissions:
