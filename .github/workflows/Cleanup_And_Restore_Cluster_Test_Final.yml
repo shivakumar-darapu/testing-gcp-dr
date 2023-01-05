@@ -112,14 +112,14 @@ jobs:
           echo " -------> Scale Down Frontend & Backend Pods <-------------"
           while IFS=";" read -r dep rep
           do
-            echo "-----> Increasing replica count to 0 of deployment $dep ----->"
+            echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
             kubectl scale --replicas=0 deployment/$dep -n $namespace
           done < <(cat scale-up-deployments-list.csv)
 
-          echo "-----------> Scale Down Kafka , RabitMQ and other stateful services <--------""
+          echo "-----------> Scale Down Kafka , RabitMQ and other stateful services <--------"
           while IFS=";" read -r dep rep
           do
-            echo "-----> Increasing replica count to 0 of deployment $dep ----->"
+            echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
             kubectl scale --replicas=0 deployment/$dep -n $namespace
           done < <(cat scale-down-deployments.csv)
 
