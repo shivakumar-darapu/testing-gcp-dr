@@ -112,22 +112,34 @@ jobs:
           echo " -------> Scale Down Frontend & Backend Pods <-------------"
           while IFS=";" read -r dep rep
           do
-            echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep -n $namespace
+            if [ -z "$dep" ];then 
+              echo ""
+            else 
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
           done < <(cat frontend-deployments-list.csv)
 
           echo " -------> Scale Down Frontend & Backend Pods <-------------"
           while IFS=";" read -r dep rep
           do
-            echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep -n $namespace
+            if [ -z "$dep" ];then 
+              echo ""
+            else
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
           done < <(cat backend-deployment-list.csv)
 
           echo "-----------> Scale Down Kafka , RabitMQ and other stateful services <--------"
           while IFS=";" read -r dep rep
           do
-            echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep -n $namespace
+            if [ -z "$dep" ];then 
+              echo ""
+            else 
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
           done < <(cat redis-elasticsearch-deployments-list.csv)
 
           echo " ----------> Delete DB <-------------------------------- "
@@ -195,19 +207,38 @@ jobs:
           gcloud info
           gcloud version
           gcloud components install beta --quiet
-          echo " -------> Scale Down Frontend & Backend Deployments <-------------"
+                    echo " -------> Scale Down Frontend & Backend Pods <-------------"
           while IFS=";" read -r dep rep
           do
-            echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep -n $namespace
-          done < <(cat scale-up-deployments-list.csv)
+            if [ -z "$dep" ];then 
+              echo ""
+            else 
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
+          done < <(cat frontend-deployments-list.csv)
 
-          echo "-----------> Scale Down Kafka , RabitMQ and Other Stateful Deployments <--------"
+          echo " -------> Scale Down Frontend & Backend Pods <-------------"
           while IFS=";" read -r dep rep
           do
-            echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep -n $namespace
-          done < <(cat scale-down-deployments.csv)
+            if [ -z "$dep" ];then 
+              echo ""
+            else
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
+          done < <(cat backend-deployment-list.csv)
+
+          echo "-----------> Scale Down Kafka , RabitMQ and other stateful services <--------"
+          while IFS=";" read -r dep rep
+          do
+            if [ -z "$dep" ];then 
+              echo ""
+            else 
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
+          done < <(cat redis-elasticsearch-deployments-list.csv)
 
           echo " ----------> Delete DB <-------------------------------- "
 
@@ -272,8 +303,12 @@ jobs:
         run: |
           while IFS=";" read -r dep rep
           do
-            echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep -n $namespace
+            if [ -z "$dep" ];then 
+              echo ""
+            else 
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
           done < <(cat scale-up-deployments-list.csv)
  
   SCALE_DOWN_DEPLOYMENTS_PRIMARY:
@@ -300,8 +335,12 @@ jobs:
         run: |
           while IFS=";" read -r dep rep
           do
-            echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
-            kubectl scale --replicas=0 deployment/$dep -n $namespace
+            if [ -z "$dep" ];then 
+              echo ""
+            else 
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
           done < <(cat scale-up-deployments-list.csv)
 
   DB_DELETE_SECONDARY:
@@ -455,8 +494,6 @@ jobs:
         run: |
             gcloud info
             gcloud version
-
-            
             all_dbs_central=("db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central" "db-us-central")
             all_svc_names=("postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service" "postgres-service")
             for ((index=0;index<${#all_dbs_central[@]};index++))
