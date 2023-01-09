@@ -191,8 +191,8 @@ jobs:
             echo "-----> Increasing replica count to $rep of deployment $dep ----->"
             kubectl scale --replicas=$rep deployment/$dep -n $namespace
           done < <(cat redis-elasticsearch-deployments-list.csv)
-
-         echo "-------------> Restarting Backernd Deployments <-------------------------------------"
+          
+          echo "-------------> Restarting Backernd Deployments <-------------------------------------"
           while IFS=";" read -r dep rep
           do
             echo "-----> Restating deployment $dep ----->"
