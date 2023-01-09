@@ -207,7 +207,7 @@ jobs:
           gcloud info
           gcloud version
           gcloud components install beta --quiet
-                    echo " -------> Scale Down Frontend & Backend Pods <-------------"
+          echo " -------> Scale Down Frontend & Backend Pods <-------------"
           while IFS=";" read -r dep rep
           do
             if [ -z "$dep" ];then 
@@ -301,6 +301,7 @@ jobs:
           location: 'us-west1-a'  
       - name: "Scaling Deployemnts on primary cluster"
         run: |
+          echo " -------> Scaling Down Frontend Pods <-------------"
           while IFS=";" read -r dep rep
           do
             if [ -z "$dep" ];then 
@@ -309,8 +310,19 @@ jobs:
               echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
               kubectl scale --replicas=0 deployment/$dep -n $namespace
             fi
-          done < <(cat scale-up-deployments-list.csv)
- 
+          done < <(cat frontend-deployments-list.csv)
+
+          echo " -------> Scaling Down Backend Pods <-------------"
+          while IFS=";" read -r dep rep
+          do
+            if [ -z "$dep" ];then 
+              echo ""
+            else
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
+          done < <(cat backend-deployment-list.csv)
+
   SCALE_DOWN_DEPLOYMENTS_PRIMARY:
     permissions:
       contents: 'read'
@@ -333,6 +345,7 @@ jobs:
           location: 'us-central1-c'
       - name: "Scaling Deployemnts on primary cluster"
         run: |
+          echo " -------> Scaling Down Frontend Pods <-------------"
           while IFS=";" read -r dep rep
           do
             if [ -z "$dep" ];then 
@@ -341,7 +354,18 @@ jobs:
               echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
               kubectl scale --replicas=0 deployment/$dep -n $namespace
             fi
-          done < <(cat scale-up-deployments-list.csv)
+          done < <(cat frontend-deployments-list.csv)
+
+          echo " -------> Scaling Down Backend Pods <-------------"
+          while IFS=";" read -r dep rep
+          do
+            if [ -z "$dep" ];then 
+              echo ""
+            else
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
+            fi
+          done < <(cat backend-deployment-list.csv)
 
   DB_DELETE_SECONDARY:
     permissions:
