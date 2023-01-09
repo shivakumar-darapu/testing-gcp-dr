@@ -470,8 +470,12 @@ jobs:
           echo "-------------> Scaling Out the Frontend Deployments <-------------------------------------"
           while IFS=";" read -r dep rep
           do
-            echo "-----> Increasing replica count to $rep of deployment $dep ----->"
-            kubectl scale --replicas=$rep deployment/$dep -n $namespace
+            if [ -z "$var" ];then
+              echo " -----> All Deployments scaled ---->"
+            else
+              echo "-----> Increasing replica count to $rep of deployment $dep ----->"
+              kubectl scale --replicas=$rep deployment/$dep -n $namespace
+            fi
           done < <(cat frontend-deployments-list.csv)
  
   SCALE_UP_DEPLOYMENTS_PRIMARY:
