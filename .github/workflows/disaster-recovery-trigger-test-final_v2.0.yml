@@ -368,13 +368,13 @@ jobs:
           location: 'us-west1-a'  
       - name: "Scaling Deployemnts on primary cluster"
         run: |
-          while IFS=";" read -r deployment rep
+          while IFS=";" read -r dep rep
           do
             if [ -z "$dep" ];then 
               echo ""
             else 
-              echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
-              kubectl scale --replicas=0 deployment/$deployment -n $namespace
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
             fi
           done < <(cat redis-elasticsearch-deployments-list.csv)
  
@@ -401,13 +401,13 @@ jobs:
           location: 'us-central1-c'
       - name: "Scaling Deployemnts on primary cluster"
         run: |
-          while IFS=";" read -r deployment rep
+          while IFS=";" read -r dep rep
           do
             if [ -z "$dep" ];then 
               echo ""
             else 
-              echo "-----> Decreasing replica count to 0 of deployment $deployment ----->"
-              kubectl scale --replicas=0 deployment/$deployment -n $namespace
+              echo "-----> Decreasing replica count to 0 of deployment $dep ----->"
+              kubectl scale --replicas=0 deployment/$dep -n $namespace
             fi
           done < <(cat redis-elasticsearch-deployments-list.csv)
 
