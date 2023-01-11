@@ -279,7 +279,8 @@ jobs:
             # Only Restore logic 
 
             # Restore Backup 
-            backup_name_primary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary --project=$gke_project_id --location=$secondary_region --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
+            backup_name_primary=$(gcloud beta container backup-restore backups list --backup-plan="us-central-backup-plan" --project='grand-thought-365806' --location=us-west1 --sort-by='~' | awk 'NR==1{print $2}')
+            # backup_name_primary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary --project=$gke_project_id --location=$secondary_region --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
             echo "The latest backup is : $backup_name_primary"
             echo " Restoring Backup : $restore_name_primary"
             gcloud beta container backup-restore restores create $restore_name_primary \
@@ -334,7 +335,8 @@ jobs:
             # Only Restore logic 
             echo "In else Loop us-west"
             # Restore Backup 
-            backup_name_secondary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary_to_primary --project=$gke_project_id --location=$primary_region --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
+            backup_name_primary=$(gcloud beta container backup-restore backups list --backup-plan="us-central-backup-plan" --project='grand-thought-365806' --location=us-west1 --sort-by='~' | awk 'NR==1{print $2}')
+            # backup_name_secondary=$(gcloud beta container backup-restore backups list --backup-plan=$backup_plan_primary_to_primary --project=$gke_project_id --location=$primary_region --sort-by='~' | awk 'NR==2,/NAME: /{print $1}') 
             echo "The latest backup file name as per search history is : $backup_name_secondary"
             echo "projects/$gke_project_id/locations/us-west1/backupPlans/$restore_plan_secondary/backups/$backup_name_secondary"
             gcloud beta container backup-restore restores create $restore_name_secondary \
