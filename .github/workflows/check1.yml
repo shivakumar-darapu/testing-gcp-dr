@@ -1,0 +1,164 @@
+name: Cleanup_Test_Final_v2.0
+
+# Controls when the workflow will run
+on:
+  workflow_dispatch:
+    inputs:
+      clean_up_region:
+        type: choice
+        description: In which region would you like to create replicas
+        options: 
+        - us-west
+        - us-central 
+      rollback: 
+        type: choice
+        description: Would you like to clean resources created due to rollback ?
+        options:
+          - No
+          - Yes
+
+env:
+
+########################### PROJECT DETAILS ################################
+  
+  gke_project_id: 'grand-thought-365806'
+  vpc_name: 'thd-test-network'
+  namespace: 'myapps'
+############################################################################ 
+
+############################### ZONE INFO ##################################
+  zone_secondary: us-west1-a
+  zone_primary: us-central1-b 
+############################################################################
+
+############################## DB Service Names ##################################
+# NAMES OF ALL DB SERVICES NAMES
+  geodb_svc: postgres-service
+  notifydb_svc: postgres-service
+  securitydb_svc: postgres-service
+  tresurydb_svc: postgres-service
+  workorderdb_svc: postgres-service
+  servicecatalogdb_svc: postgres-service
+  serviceproviderdb_svc: postgres-service
+
+############################################################################
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> PRIMARY CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+########################### Primary DATABASE INFO ########################## 
+  
+  geodb_primary: db-us-central
+  notifydb_primary: db-us-central
+  securitydb_primary: db-us-central
+  serviceproviderdb_primary: db-us-central
+  tresurydb_primary: db-us-central
+  workorderdb_primary: db-us-central
+  servicecatalogdb_primary: db-us-central
+
+############################################################################ 
+
+########################## Primary LOAD BALANCER INFO ###################### 
+
+  primary_external_lb_backend_service_name: thd-dev-backend-svc2
+  primary_external_lb_url_map: thd-global
+  primary_internal_lb_backend_service_name: thd-dev-backend-svc1-internal
+  primary_internal_lb_url_map: thd-dev-url-map-internal
+
+############################################################################
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Secondary CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+########################## Secondary LOAD BALANCER INFO ###################### 
+
+  secondary_external_lb_backend_service_name: thd-dev-backend-svc2
+  secondary_external_lb_url_map: test-lb
+  secondary_internal_lb_backend_service_name: thd-dev-backend-svc2-internal
+  secondary_internal_lb_url_map: thd-dev-url-map-internal
+
+############################################################################ 
+
+########################## Secondary DATABASE INFO ###########################
+
+  geodb_secondary: db-us-west
+  notifydb_secondary: notifydb-replica
+  securitydb_secondary: securitydb-dr-replica
+  serviceproviderdb_secondary: serviceproviderdb-dr-replica
+  tresurydb_secondary: tresurydb-dr-replica
+  workorderdb_secondary: workorderdb-dr-replica
+  servicecatalogdb_secondary: servicecatalogdb-dr-replica
+
+########################################################################### 
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>># 
+     
+jobs:
+  UPDATE_POSTGRESQL_IP_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.clean_up_region == 'us-central' && inputs.rollback == 'false'
+    steps:
+      - name: "Clone the repo to copy the service-external.yml"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-cluster'  # Make sure you provide the cluster name and location
+          location: 'us-central1-c'
+      - name: 'Use gcloud CLI'
+        run: |
+            all_dbs_central=("$geodb_primary" "$notifydb_primary" "$securitydb_primary" "$tresurydb_primary" "$workorderdb_primary" "$servicecatalogdb_primary" "$serviceproviderdb_primary")
+            all_svc_names=("$geodb_svc" "$notifydb_svc" "$securitydb_svc" "$tresurydb_svc" "$workorderdb_svc" "$servicecatalogdb_svc" "$serviceproviderdb_svc")
+            
+            for ((index=0;index<${#all_dbs_central[@]};index++))
+            do
+                db_ip=$(gcloud sql instances describe ${all_dbs_central[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+                cp service-external.yml ${all_svc_names[$index]}.yml
+                sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+                sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+                kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+            done
+
+  UPDATE_POSTGRESQL_IP_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-latest
+    if: inputs.clean_up_region == 'us-west' && inputs.rollback == 'false'
+    steps:
+      - name: "Clone the repo to copy the service-external.yml"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/13793097680/locations/global/workloadIdentityPools/mypool/providers/myprovider'
+          service_account: 'my-test-service-account@grand-thought-365806.iam.gserviceaccount.com'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: 'us-west' # Make sure you provide the cluster name and location
+          location: 'us-west1-a'  
+      - name: 'Use gcloud CLI'
+        run: |
+            all_dbs_west=("$geodb_secondary" "$notifydb_secondary" "$securitydb_secondary" "$tresurydb_secondary" "$workorderdb_secondary" "$servicecatalogdb_secondary" "$serviceproviderdb_secondary")
+            all_svc_names=("$geodb_svc" "$notifydb_svc" "$securitydb_svc" "$tresurydb_svc" "$workorderdb_svc" "$servicecatalogdb_svc" "$serviceproviderdb_svc")
+            
+            for ((index=0;index<${#all_dbs_west[@]};index++))
+            do
+                db_ip=$(gcloud sql instances describe ${all_dbs_west[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+                cp service-external.yml ${all_svc_names[$index]}.yml
+                sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+                sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+                kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+            done
