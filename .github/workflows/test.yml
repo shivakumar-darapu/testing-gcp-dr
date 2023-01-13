@@ -2,7 +2,7 @@ name: test_wip_sa
 # Controls when the workflow will run
 on:
   workflow_dispatch:
-    
+
 jobs:
 
   Rollback_CleanUP_ON_SECONDARY:
@@ -19,9 +19,15 @@ jobs:
           service_account: '${{ secrets.sa }}'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: '${{ vars.secondary_cluster_name }}'  # Make sure you provide the cluster name and location
+          location: '${{ vars.secondary_cluster_location }}'
       - name: 'Use gcloud & kube CLI commands'
         run: |
           gcloud info
           gcloud version
           gcloud sql instances list
+          kubectl get nodes
           echo " -------> Scale Down Frontend & Backend Pods <-------------"
