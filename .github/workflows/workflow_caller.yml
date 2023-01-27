@@ -36,7 +36,7 @@ jobs:
         
   called_workflow:
     uses: ./.github/workflows/CALLED_WORKFLOW.yml
-    if: (inputs.opt1 == 'true' && inputs.test == 'Shiv') || inputs.opt1 == 'true'
+    if: (inputs.opt1 == 'true' && inputs.test == 'Shiv') || inputs.opt2 == 'true'
     secrets: 
       my_name: "${{ github.event.inputs.test }}"
       
