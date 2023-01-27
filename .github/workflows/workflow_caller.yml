@@ -15,6 +15,6 @@ jobs:
         run: echo Hello, In Celler Workflow
         
   called_workflow:
-    uses: ./.github/workflows/called.yml
+    uses: ./.github/workflows/CALLED_WORKFLOW.yml
 
 
