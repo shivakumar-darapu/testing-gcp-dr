@@ -4,15 +4,12 @@ name: CALLED_WORKFLOW
 
 # Controls when the workflow will run
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       my_name:
-        type: choice
+        type: string
         description: choose name
-        options:
-          - skumar
-          - darapu
-          - none
+        default: 'shiv'
 jobs:
   # This workflow contains a single job called "build"
   build:
