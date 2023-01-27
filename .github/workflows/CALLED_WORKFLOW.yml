@@ -1,12 +1,14 @@
 # This is a basic workflow to help you get started with Actions
 
 name: CALLED_WORKFLOW
-env:
-  name: ""
+
 
 # Controls when the workflow will run
 on:
   workflow_call:
+    secrets:
+      my_name:
+        required: true
 
 jobs:
   # This workflow contains a single job called "build"
@@ -26,4 +28,4 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
         run: |
-          echo " name = $my_name "
+          echo " name = ${{ secrets.my_name }} "
