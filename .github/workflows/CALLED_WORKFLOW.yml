@@ -30,4 +30,9 @@ jobs:
         env:
           my_name: ${{ secrets.my_name }}
         run: |
+          if [ '$my_name' == 'shiv' ];then
+            echo "its shiv"
+          else
+            echo " its not shiv"
+          fi
           echo " name: $my_name "
