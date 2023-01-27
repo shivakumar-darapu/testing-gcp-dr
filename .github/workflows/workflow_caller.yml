@@ -5,6 +5,13 @@ name: CALLER_WORKFLOW
 # Controls when the workflow will run
 on:
   workflow_dispatch:
+    inputs:
+      test:
+        type: choice
+        description: test
+        options:
+          - shiv
+          - megha
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -17,7 +24,7 @@ jobs:
   called_workflow:
     uses: ./.github/workflows/CALLED_WORKFLOW.yml
     secrets: 
-      my_name: 'shiv'
+      my_name: "${{ github.event.inputs.test }}"
       
 
 
