@@ -16,5 +16,8 @@ jobs:
         
   called_workflow:
     uses: ./.github/workflows/CALLED_WORKFLOW.yml
+    secrets: 
+      my_name: 'shiv'
+      
 
 
