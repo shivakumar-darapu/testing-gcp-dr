@@ -27,7 +27,11 @@ jobs:
   job3:
     runs-on: ubuntu-latest
     needs: [build, job2]
-    if: (needs.job1.outputs.output1 == 'success' || needs.job2.outputs.output2 == 'success') && inputs.primary_cluster_location == 'secondary'
+    if: |
+      always()
+      && contains(needs.*.result, 'success')
+      && !contains(needs.*.result, 'failure')
+      && inputs.primary_cluster_location == 'primary'
     steps:
       - run: echo ${{needs.build.outputs.output1}} ${{needs.job2.outputs.output2}}
       
