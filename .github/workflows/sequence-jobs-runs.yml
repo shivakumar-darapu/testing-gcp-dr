@@ -38,7 +38,7 @@ jobs:
       output2: ${{ steps.step1.outputs.test }}
     steps:
       - id: step0
-        run: echo "something"
+        run: psql -h localhost -U shiv shiv
 
       - id: step1
         if: success()
