@@ -1,0 +1,63 @@
+# This is a basic workflow to help you get started with Actions
+
+name: sequence-jobs-runs
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      primary_cluster_location:
+        type: choice
+        description: Select the region where your apps are currently running.
+        options:
+          - primary
+          - secondary
+      switch_to_region:
+        type: choice
+        description: Select the region you would like to switch DB's Too.
+        options: 
+        - secondary
+        - primary
+        
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  job3:
+    runs-on: ubuntu-latest
+    needs: [build, job2]
+    if: (needs.job1.outputs.output1 == 'success' || needs.job2.outputs.output2 == 'success') && inputs.primary_cluster_location == 'secondary'
+    steps:
+      - run: echo ${{needs.build.outputs.output1}} ${{needs.job2.outputs.output2}}
+      
+  job2:
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'primary'
+    outputs:
+      output2: ${{ steps.step1.outputs.test }}
+    steps:
+      - id: step0
+        run: echo "something"
+
+      - id: step1
+        if: success()
+        run: echo "::set-output name=test::success"
+
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    if: inputs.switch_to_region == 'secondary'
+    outputs:
+      output1: ${{ steps.step1.outputs.test }}
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: echo Hello, world!
+      - id: step1
+        if: success()
+        run: echo "::set-output name=test::success"
+    
+  
+
