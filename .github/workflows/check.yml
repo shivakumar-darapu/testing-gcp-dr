@@ -1,0 +1,633 @@
+name: DB_SWITCH
+env:
+
+########################### PROJECT DETAILS ################################
+  gke_project_id: '${{ vars.gke_project_id }}' 
+  namespace: '${{ vars.namespace }}'
+############################################################################ 
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Primary CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+########################### Primary DATABASE INFO ########################## 
+
+
+  geodb_dr_primary: '${{ vars.geodb_primary }}'
+  notifydb_dr_primary: '${{ vars.notifydb_primary }}'
+  securitydb_dr_primary: '${{ vars.securitydb_dr_primary }}'
+  serviceproviderdb_dr_primary: '${{ vars.serviceproviderdb_dr_primary }}'
+  tresurydb_dr_primary: '${{ vars.tresurydb_dr_primary }}'
+  workorderdb_dr_primary: '${{ vars.workorderdb_dr_primary }}'
+  servicecatalogdb_dr_primary: '${{ vars.servicecatalogdb_dr_primary }}'
+  db_region_primary: '${{ vars.db_region_primary }}' # Provide Region name and not zone. Required to create backups
+
+############################################################################
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Secondary CLUSTER INFO <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+########################## Secondary DATABASE INFO ###########################
+
+  geodb_dr_secondary: '${{ vars.geodb_secondary }}'
+  notifydb_dr_secondary: '${{ vars.notifydb_secondary }}'
+  securitydb_dr_secondary: '${{ vars.securitydb_dr_secondary }}'
+  serviceproviderdb_dr_secondary: '${{ vars.serviceproviderdb_dr_secondary }}'
+  tresurydb_dr_secondary: '${{ vars.tresurydb_dr_secondary }}'
+  workorderdb_dr_secondary: '${{ vars.workorderdb_dr_secondary }}'
+  servicecatalogdb_dr_secondary: '${{ vars.servicecatalogdb_dr_secondary }}'
+  db_region_secondary: '${{ vars.db_region_secondary }}'
+
+########################################################################### 
+
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>># 
+
+on:
+  workflow_dispatch:
+    inputs:
+      check_for_db_migration:
+        type: choice
+        description: Would you like to migrate Db's ?
+        options:
+          - No
+          - Yes
+      switch_to_region:
+        type: choice
+        description: If True, Select the region you would like to switch DB's Too (Make Sure Above input is marked TRUE ).
+        options:
+          - secondary
+          - primary
+      geodb:
+        type: choice
+        description: Would you like to move geodb ?
+        options:
+          - No
+          - Yes
+      notifydb:
+        type: choice
+        description: Would you like to move notifydb ?
+        options:
+          - No
+          - Yes
+      securitydb:
+        type: choice
+        description: Would you like to move securitydb ?
+        options:
+          - No
+          - Yes
+      serviceproviderdb:
+        type: choice
+        description: Would you like to move serviceproviderdb ?
+        options:
+          - No
+          - Yes
+      tresurydb:
+        type: choice
+        description: Would you like to move tresurydb ?
+        options:
+          - No
+          - Yes
+      workorderdb:
+        type: choice
+        description: Would you like to move workorderdb ?
+        options:
+          - No
+          - Yes
+      servicecatalogdb:
+        type: choice
+        description: Would you like to move servicecatalogdb ?
+        options:
+          - No
+          - Yes
+      check_for_ip_update:
+        type: choice
+        description: Would you like to Update Services Ip's of GKE ?
+        options:
+          - No
+          - Yes
+      cluster_location:
+        type: choice
+        description: Select the region whose service Ip's needs to be updated ?
+        options:
+          - primary
+          - secondary
+
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  DB_PROMOTION_PRIMARY_TO_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: '${{ vars.runner }}'
+    if: inputs.switch_to_region == 'secondary' && inputs.check_for_db_migration == 'true'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.DR_SERVICE_ACCOUNT }}'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          if [ ${{ github.event.inputs.geodb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $geodb_dr_secondary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $geodb_dr_secondary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.notifydb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $notifydb_dr_secondary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $notifydb_dr_secondary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.securitydb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $securitydb_dr_secondary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $securitydb_dr_secondary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.serviceproviderdb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $serviceproviderdb_dr_secondary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $serviceproviderdb_dr_secondary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.tresurydb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $tresurydb_dr_secondary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $tresurydb_dr_secondary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.workorderdb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $workorderdb_dr_secondary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $workorderdb_dr_secondary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.servicecatalogdb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $servicecatalogdb_dr_secondary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+            gcloud sql instances promote-replica $servicecatalogdb_dr_secondary --quiet
+            fi
+          fi
+          
+  DB_PROMOTION_SECONDARY_TO_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: '${{ vars.runner }}'
+    if: inputs.switch_to_region == 'primary' && && inputs.check_for_db_migration == 'true'
+    steps:
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.DR_SERVICE_ACCOUNT }}'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Use gcloud CLI'
+        run: |
+          if [ ${{ github.event.inputs.geodb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $geodb_dr_primary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $geodb_dr_primary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.notifydb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $notifydb_dr_primary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $notifydb_dr_primary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.securitydb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $securitydb_dr_primary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $securitydb_dr_primary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.serviceproviderdb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $serviceproviderdb_dr_primary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $serviceproviderdb_dr_primary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.tresurydb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $tresurydb_dr_primary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $tresurydb_dr_primary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.workorderdb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $workorderdb_dr_primary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+              gcloud sql instances promote-replica $workorderdb_dr_primary --quiet &
+            fi
+          fi
+          if [ ${{ github.event.inputs.servicecatalogdb }} == "true" ]
+          then 
+            if [ "$(gcloud sql instances describe $servicecatalogdb_dr_primary --format 'value(instanceType)')" == "READ_REPLICA_INSTANCE" ]; then
+            gcloud sql instances promote-replica $servicecatalogdb_dr_primary --quiet
+            fi
+          fi
+
+  UPDATE_POSTGRESQL_IP_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: '${{ vars.runner }}'
+    if: inputs.cluster_location == 'primary' && inputs.check_for_ip_update == 'true'
+    steps:
+      - name: "Clone the repo to copy the service-external.yml"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.DR_SERVICE_ACCOUNT }}'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Set up Creds For Primary Cluster'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: '${{ vars.primary_cluster_name }}'
+          location: '${{ vars.primary_cluster_location }}'
+      - name: 'Use gcloud CLI'
+        run: |
+          all_dbs_central=("$geodb_primary" "$notifydb_primary" "$securitydb_dr_primary" "$tresurydb_dr_primary" "$workorderdb_dr_primary" "$servicecatalogdb_dr_primary" "$serviceproviderdb_dr_primary")
+          all_svc_names=("$geodb_svc" "$notifydb_svc" "$securitydb_svc" "$tresurydb_svc" "$workorderdb_svc" "$servicecatalogdb_svc" "$serviceproviderdb_svc")
+          
+          if [ ${{ github.event.inputs.geodb }} == "true"];then 
+              unset all_dbs_central[0]
+              unset all_svc_names[0]
+          fi
+          if [ ${{ github.event.inputs.notifydb }} == "true"];then 
+              unset all_dbs_central[1]
+              unset all_svc_names[1]
+          fi
+          if [ ${{ github.event.inputs.securitydb }} == "true"];then 
+              unset all_dbs_central[2]
+              unset all_svc_names[2]
+          fi
+          if [ ${{ github.event.inputs.tresurydb }} == "true"];then 
+              unset all_dbs_central[3]
+              unset all_svc_names[3]
+          fi
+          if [ ${{ github.event.inputs.workorderdb }} == "true"];then 
+              unset all_dbs_central[4]
+              unset all_svc_names[4]
+          fi
+          if [ ${{ github.event.inputs.servicecatalogdb }} == "true"];then 
+              unset all_dbs_central[5]
+              unset all_svc_names[5]
+          fi
+          if [ ${{ github.event.inputs.serviceproviderdb }} == "true"];then 
+              unset all_dbs_central[6]
+              unset all_svc_names[6]
+          fi
+          for ((index=0;index<${#all_dbs_central[@]};index++))
+          do
+              if [ -z "${all_dbs_central[$index]}" ];then
+                echo ""
+              else
+                db_ip=$(gcloud sql instances describe ${all_dbs_central[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+                cp service-external.yml ${all_svc_names[$index]}.yml
+                sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+                sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+                kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+              fi
+          done
+
+  UPDATE_POSTGRESQL_IP_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: '${{ vars.runner }}'
+    if: inputs.cluster_location == 'secondary' && inputs.check_for_ip_update == 'true'
+    steps:
+      - name: "Clone the repo to copy the service-external.yml"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.DR_SERVICE_ACCOUNT }}'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: '${{ vars.secondary_cluster_name }}'
+          location: '${{ vars.secondary_cluster_location }}'
+      - name: 'Use gcloud CLI'
+        run: |
+          all_dbs_west=("$geodb_secondary" "$notifydb_secondary" "$securitydb_dr_secondary" "$tresurydb_dr_secondary" "$workorderdb_dr_secondary" "$servicecatalogdb_dr_secondary" "$serviceproviderdb_dr_secondary")
+          all_svc_names=("$geodb_svc" "$notifydb_svc" "$securitydb_svc" "$tresurydb_svc" "$workorderdb_svc" "$servicecatalogdb_svc" "$serviceproviderdb_svc")
+          if [ ${{ github.event.inputs.geodb }} == "true"];then 
+              unset all_dbs_west[0]
+              unset all_svc_names[0]
+          fi
+          if [ ${{ github.event.inputs.notifydb }} == "true"];then 
+              unset all_dbs_west[1]
+              unset all_svc_names[1]
+          fi
+          if [ ${{ github.event.inputs.securitydb }} == "true"];then 
+              unset all_dbs_west[2]
+              unset all_svc_names[2]
+          fi
+          if [ ${{ github.event.inputs.tresurydb }} == "true"];then 
+              unset all_dbs_west[3]
+              unset all_svc_names[3]
+          fi
+          if [ ${{ github.event.inputs.workorderdb }} == "true"];then 
+              unset all_dbs_west[4]
+              unset all_svc_names[4]
+          fi
+          if [ ${{ github.event.inputs.servicecatalogdb }} == "true"];then 
+              unset all_dbs_west[5]
+              unset all_svc_names[5]
+          fi
+          if [ ${{ github.event.inputs.serviceproviderdb }} == "true"];then 
+              unset all_dbs_west[6]
+              unset all_svc_names[6]
+          fi
+          for ((index=0;index<${#all_dbs_west[@]};index++))
+          do
+              if [ -z "${all_dbs_west[$index]}" ];then
+                echo ""
+              else
+                db_ip=$(gcloud sql instances describe ${all_dbs_west[$index]} --format 'value(ipAddresses.ipAddress)' --project $gke_project_id)
+                cp service-external.yml ${all_svc_names[$index]}.yml
+                sed -i "s/svcname/${all_svc_names[$index]}/" "./${all_svc_names[$index]}.yml"
+                sed -i "s/IP/$db_ip/" "./${all_svc_names[$index]}.yml"
+                kubectl apply -f ./${all_svc_names[$index]}.yml -n $namespace
+              fi
+          done
+
+  REFRESH_DEPLOYMENTS_SECONDARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    needs: [UPDATE_POSTGRESQL_IP_SECONDARY]
+    runs-on: '${{ vars.runner }}'
+    #if: (always() && contains(needs.*.result, 'success') && !contains(needs.*.result, 'failure')) && inputs.primary_cluster_location == 'secondary'
+    if: inputs.cluster_location == 'secondary' && inputs.check_for_ip_update == 'true'
+    steps:
+      - name: "Cloning the repo to copy the deployments.csv containing the deployment name and replica count"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+        # Please provide the workload_identity_provider & service_account
+          workload_identity_provider: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.DR_SERVICE_ACCOUNT }}'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
+        with:
+          install_components: 'beta,kubectl'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: '${{ vars.secondary_cluster_name }}' 
+          location: '${{ vars.secondary_cluster_location }}' 
+      - name: "Refreshing Deployemnts on Secondary cluster"
+        run: |
+          
+            # Getting all component list so we dont have to rerun kubectl commands inorder to verify if the components mentioned in file exists    
+            all_deployments=$(kubectl get deployment -n $namespace | awk '{print $1}')
+            all_statefull_sets=$(kubectl get statefulsets -n $namespace | awk '{print $1}')
+            all_cron_jobs=$(kubectl get cronjobs -n $namespace | awk '{print $1}')
+            
+            echo "-------------> Step1: Refreshing Platform components <-------------------------------------"
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_deployments | grep $dep)" ];then
+                  echo "*****************==> Deployment $dep does not exist <==**********************************"
+                else 
+                  echo "-----> Restarting Pods Of Deployment $dep ----->"
+                  kubectl rollout restart deployment/$dep -n $namespace
+                fi
+              fi
+            done < <(cat platform-components-list.csv)
+
+            echo "-------------> Refreshing Platform Components (Statefull sets) <--------------------"
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_statefull_sets | grep $dep)" ];then
+                  echo "*****************==> Statefulsets $dep does not exist <==**********************************"
+                else 
+                  echo "-----> Restarting Pods Of statefulsets $dep ----->"
+                  kubectl rollout restart statefulsets $dep -n $namespace
+                fi
+              fi
+            done < <(cat platform-statefull-set-components-list.csv)
+            
+            echo "-------------> Step 2 : Verifying if the Platform Components are UP <------------------------------ "
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_deployments | grep $dep)" ];then
+                    echo "*****************==> Deployment $dep does not exist <==**********************************"
+                else
+                  while true 
+                  do 
+                    if [ "$(kubectl get pods -n $namespace | grep $dep | awk 'NR==1 {print $3}')" == "Running" ];then
+                      break
+                    fi 
+                    echo "$dep is currently in $(kubectl get pods -n $namespace | grep $dep | awk 'NR==1 {print $3}') state. Waiting for it to start"
+                    sleep 5
+                  done
+                fi
+              fi
+            done < <(cat platform-components-list.csv)
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_statefull_sets | grep $dep)" ];then
+                    echo "*****************==> statefulsets  $dep does not exist <==**********************************"
+                else
+                  while true 
+                  do 
+                    if [ "$(kubectl get pods -n $namespace | grep $dep | awk 'NR==1 {print $3}')" == "Running" ];then
+                      break
+                    fi 
+                    echo "$dep is currently in $(kubectl get pods -n $namespace | grep $dep | awk 'NR==1 {print $3}') state. Waiting for it to start"
+                    sleep 5
+                  done
+                fi
+              fi
+            done < <(cat platform-statefull-set-components-list.csv)
+
+            echo "-------------> Step3: Refreshing Backend Deployments <----------------------------------------------"
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_deployments | grep $dep)" ];then
+                  echo "*****************==> Deployment $dep does not exist <==**********************************"
+                else 
+                  echo "-----> Refreshing deployment $dep ----->"
+                  kubectl rollout restart deployment $dep -n $namespace
+                fi
+              fi
+            done < <(cat backend-deployment-list.csv)
+
+            echo "-------------> Step4: Scaling Out the Frontend Deployments <-------------------------------------"
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_deployments | grep $dep)" ];then
+                  echo "*****************==> Deployment $dep does not exist <==**********************************"
+                else 
+                  echo "-----> Refreshing deployment $dep ----->"
+                  kubectl rollout restart deployment $dep -n $namespace
+                fi
+              fi
+            done < <(cat frontend-deployments-list.csv)
+
+  REFRESH_DEPLOYMENTS_PRIMARY:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    needs: [UPDATE_POSTGRESQL_IP_PRIMARY]
+    runs-on: '${{ vars.runner }}'
+    if: inputs.cluster_location == 'primary' && inputs.check_for_ip_update == 'true'
+    steps:
+      - name: "Clone the repo to copy the deployments.txt"
+        uses: actions/checkout@v3
+      - name: Set up gcloud Cloud SDK environment
+        uses: 'google-github-actions/auth@v0'
+        with:
+          workload_identity_provider: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.DR_SERVICE_ACCOUNT }}'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
+        with:
+          install_components: 'beta,kubectl'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/get-gke-credentials@v1'
+        with:
+          cluster_name: '${{ vars.primary_cluster_name }}' 
+          location: '${{ vars.primary_cluster_location }}'
+      - name: "Scaling Deployemnts on primary cluster"
+        run: |
+            # Getting all component list so we dont have to rerun kubectl commands inorder to verify if the components mentioned in file exists    
+            all_deployments=$(kubectl get deployment -n $namespace | awk '{print $1}')
+            all_statefull_sets=$(kubectl get statefulsets -n $namespace | awk '{print $1}')
+            all_cron_jobs=$(kubectl get cronjobs -n $namespace | awk '{print $1}')
+            
+            echo "-------------> Step1: Refreshing Platform components <-------------------------------------"
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_deployments | grep $dep)" ];then
+                  echo "*****************==> Deployment $dep does not exist <==**********************************"
+                else 
+                  echo "-----> Restarting Pods Of Deployment $dep ----->"
+                  kubectl rollout restart deployment/$dep -n $namespace
+                fi
+              fi
+            done < <(cat platform-components-list.csv)
+
+            echo "-------------> Refreshing Platform Components (Statefull sets) <--------------------"
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_statefull_sets | grep $dep)" ];then
+                  echo "*****************==> Statefulsets $dep does not exist <==**********************************"
+                else 
+                  echo "-----> Restarting Pods Of statefulsets $dep ----->"
+                  kubectl rollout restart statefulsets $dep -n $namespace
+                fi
+              fi
+            done < <(cat platform-statefull-set-components-list.csv)
+            
+            echo "-------------> Step 2 : Verifying if the Platform Components are UP <------------------------------ "
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_deployments | grep $dep)" ];then
+                    echo "*****************==> Deployment $dep does not exist <==**********************************"
+                else
+                  while true 
+                  do 
+                    if [ "$(kubectl get pods -n $namespace | grep $dep | awk 'NR==1 {print $3}')" == "Running" ];then
+                      break
+                    fi 
+                    echo "$dep is currently in $(kubectl get pods -n $namespace | grep $dep | awk 'NR==1 {print $3}') state. Waiting for it to start"
+                    sleep 5
+                  done
+                fi
+              fi
+            done < <(cat platform-components-list.csv)
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_statefull_sets | grep $dep)" ];then
+                    echo "*****************==> statefulsets  $dep does not exist <==**********************************"
+                else
+                  while true 
+                  do 
+                    if [ "$(kubectl get pods -n $namespace | grep $dep | awk 'NR==1 {print $3}')" == "Running" ];then
+                      break
+                    fi 
+                    echo "$dep is currently in $(kubectl get pods -n $namespace | grep $dep | awk 'NR==1 {print $3}') state. Waiting for it to start"
+                    sleep 5
+                  done
+                fi
+              fi
+            done < <(cat platform-statefull-set-components-list.csv)
+
+            echo "-------------> Step3: Refreshing Backend Deployments <----------------------------------------------"
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_deployments | grep $dep)" ];then
+                  echo "*****************==> Deployment $dep does not exist <==**********************************"
+                else 
+                  echo "-----> Refreshing deployment $dep ----->"
+                  kubectl rollout restart deployment $dep -n $namespace
+                fi
+              fi
+            done < <(cat backend-deployment-list.csv)
+
+            echo "-------------> Step4: Scaling Out the Frontend Deployments <-------------------------------------"
+            while IFS=";" read -r dep rep
+            do
+              if [ -z "$dep" ];then 
+                echo ""
+              else 
+                if [ -z "$(echo $all_deployments | grep $dep)" ];then
+                  echo "*****************==> Deployment $dep does not exist <==**********************************"
+                else 
+                  echo "-----> Refreshing deployment $dep ----->"
+                  kubectl rollout restart deployment $dep -n $namespace
+                fi
+              fi
+            done < <(cat frontend-deployments-list.csv)
+
+  
+
